@@ -57,40 +57,23 @@ def semantic_search():
         result_list =  [documents[index] for index, similarity in results]
     #format proper response using ChatGpt
     url = "https://api.openai.com/v1/engines/text-davinci-003/completions"
-    prompt = "Provide a proper natural response where the prompt is " + query + " and the response is the following " + str(result_list)
+    prompt = "Provide a proper natural response where the prompt is " + query + " and the response is the following " + str(result_list) + " and provide source links if possible"
+    #prompt = query
     payload = {
         "prompt": prompt,
-        "temperature": 0.9,
+        "temperature": 1,
         "max_tokens": 500
     }
     headers = {
         "Content-type":"application/json",
-        "Authorization": "Bearer "
+        "Authorization": "Bearer " + openai.api_key
     }
+    
     response = requests.post(url, json=payload, headers=headers)
     data = response.json()
     completion = data["choices"][0]["text"]
     #response = format_response(query, result_list[0])
     return str(completion)
-
-def format_response(query,result_list):
-    #print("Query: {} \nResult List: {} \nResponse: {}".format(query, result_list, format_response(query, result_list[0])))
-    url = "https://api.openai.com/v1/engines/text-davinci-003/completions"
-    prompt = "Provide a proper natural response where the prompt is " + query + " and the response is the following " + str(result_list)
-    payload = {
-        "prompt": prompt,
-        "temperature": 0.9,
-        "max_tokens": 500
-    }
-    headers = {
-        "Content-type":"application/json",
-        "Authorization": "Bearer <open ai api key>"
-    }
-    response = requests.post(url, json=payload, headers=headers)
-    data = response.json()
-    return (data["choices"][0]["text"])
-    #return (data)
-
     
 @app.route('/')
 def hello():
