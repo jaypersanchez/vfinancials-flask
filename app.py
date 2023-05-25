@@ -12,6 +12,8 @@ openai.api_key = openai.api_key = openai_api_key
 #model_engine = "text-embedding-ada-002"
 model_engine = "gpt-4"
 model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+from flask import Flask
+from flask_cors import CORS
 
 #Test Data for embedding
 documents = [
@@ -30,7 +32,7 @@ documents = [
 ]
 
 app = Flask(__name__)
-
+CORS(app)
 @app.route('/test/vectordata')
 def generate_embeddings():
     document_embeddings = model.encode(documents)
@@ -43,8 +45,8 @@ def get_documents():
 @app.route('/semantic')
 def semantic_search():
     top_k=1
-    data = request.get_json()
-    query = data['query']
+    query = request.args.get('query') #request.get_json()
+    #query = data['query']
     document_embeddings = model.encode(documents)
     query_embedding = model.encode([query])[0]
     similarities = cosine_similarity([query_embedding], document_embeddings)[0]
@@ -61,7 +63,7 @@ def semantic_search():
     #prompt = query
     payload = {
         "prompt": prompt,
-        "temperature": 1,
+        "temperature": 0.9,
         "max_tokens": 500
     }
     headers = {
