@@ -14,6 +14,8 @@ model_engine = "gpt-4"
 model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
 from flask import Flask
 from flask_cors import CORS
+from openbb_terminal.sdk import openbb
+
 
 #Test Data for embedding
 documents = [
@@ -41,7 +43,41 @@ def generate_embeddings():
 @app.route('/test/document')
 def get_documents():
     return str(documents)
-    
+
+@app.route('/mykeys')
+def myKeys():
+    print(openbb.keys.mykeys(show=True))
+     
+@app.route('/stocks/search', methods=['GET'])
+def stock_loadSymbol():
+    bodyRequest = request.get_json()
+    selectedCountry = bodyRequest.get("selected_country")
+    selectedExchange = bodyRequest.get("selected_exchange")
+    return(f"/stocks/search {selectedCountry}::{selectedExchange}")
+    #openbb.stocks.load(symbol: str, start_date: Union[datetime.datetime, str, NoneType] = 
+    #                   None, interval: int = 1440, end_date: Union[datetime.datetime, str, NoneType] = 
+    #                   None, prepost: bool = False, source: str = "YahooFinance", weekly: 
+    #                   bool = False, monthly: bool = False, verbose: bool = True)
+    # country=selected_country, exchange_country=selected_exchange
+
+#Requires API_KEY_FINANCIALMODELINGPREP 
+@app.route('/stocks/quote', methods=['GET'])
+def stock_getQuote():
+    symbols = request.args.get('symbol')
+    print(f"/stocks/quote {symbols}")
+    # iterate through passed in symbols
+    results = []
+    quotes: object = []
+    for symbol in symbols:
+        # call stock quote api from OpenBB SDK
+        #print(symbol)
+        quote = openbb.stocks.quote(symbol).transpose()
+        # append quote to results
+        results.append(quote)
+        
+    return results
+        
+@app.route('/')
 @app.route('/semantic')
 def semantic_search():
     top_k=1
