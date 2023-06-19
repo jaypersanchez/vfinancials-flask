@@ -1,5 +1,6 @@
 from flask import Flask
 from flask import request
+from flask import abort
 from flask import jsonify
 import numpy as np
 import os
@@ -15,6 +16,8 @@ model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
 from flask import Flask
 from flask_cors import CORS
 from openbb_terminal.sdk import openbb
+import sys
+import pandas as pd
 
 
 #Test Data for embedding
@@ -53,12 +56,15 @@ def stock_loadSymbol():
     bodyRequest = request.get_json()
     selectedCountry = bodyRequest.get("selected_country")
     selectedExchange = bodyRequest.get("selected_exchange")
-    return(f"/stocks/search {selectedCountry}::{selectedExchange}")
-    #openbb.stocks.load(symbol: str, start_date: Union[datetime.datetime, str, NoneType] = 
-    #                   None, interval: int = 1440, end_date: Union[datetime.datetime, str, NoneType] = 
-    #                   None, prepost: bool = False, source: str = "YahooFinance", weekly: 
-    #                   bool = False, monthly: bool = False, verbose: bool = True)
-    # country=selected_country, exchange_country=selected_exchange
+    try:
+        global stocks_df
+        stocks_df = openbb.stocks.search(country=selectedCountry, exchange_country=selectedExchange)
+    except HTTPError as e:
+        print("Error:",e.reason)
+    print(f"/stocks/search {selectedCountry}::{selectedExchange}")
+    #return(f"/stocks/search {selectedCountry}::{selectedExchange}")
+    return jsonify(stocks_df.to_json(orient='index'))
+    
 
 #Requires API_KEY_FINANCIALMODELINGPREP 
 @app.route('/stocks/quote', methods=['GET'])
