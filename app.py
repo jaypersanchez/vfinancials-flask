@@ -122,11 +122,12 @@ def cryptoGraph():
        symbol = request.args.get('symbol')
        print("Selected symbol: %s" % symbol)
        chart_df = openbb.crypto.candle(symbol)
+       #chart_df.update_layout(template="seaborn")
        chart_df.head()
        print(chart_df)
     except HTTPError as e:
          print("Error", e.reason)
-    return chart_df.to_json(orient='records')
+    return "Success"
 
 # Crypto Endpoints #
 
