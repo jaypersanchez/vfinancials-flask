@@ -100,7 +100,33 @@ def cryptoFind():
         except HTTPError as e:
             print("Error", e.reason)
         return crypto_df.to_json(orient='records')
+    
+#Requires API_GLASSNODE_KEY
+@app.route('/crypto/actively-traded', methods=['GET'])
+def cryptoGetActivelyTraded():
+    global active_df
+    try:
+        symbol = request.args.get('symbol')
+        print("Selected symbol: %s" % symbol)
+        active_df = pd.DataFrame(openbb.crypto.dd.active(symbol))
+        active_df.head()
+        print(active_df)
+    except HTTPError as e:
+         print("Error", e.reason)
+    return active_df.to_json(orient='records')
              
+@app.route('/crypto/graph', methods=['GET'])
+def cryptoGraph():
+    global chart_df_df
+    try:
+       symbol = request.args.get('symbol')
+       print("Selected symbol: %s" % symbol)
+       chart_df = openbb.crypto.candle(symbol)
+       chart_df.head()
+       print(chart_df)
+    except HTTPError as e:
+         print("Error", e.reason)
+    return chart_df.to_json(orient='records')
 
 # Crypto Endpoints #
 
