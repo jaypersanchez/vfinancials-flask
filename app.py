@@ -50,7 +50,61 @@ def get_documents():
 @app.route('/mykeys')
 def myKeys():
     print(openbb.keys.mykeys(show=True))
-     
+    
+# Crypto Endpoints
+@app.route('/crypto/swaps', methods=['GET'])
+def crypto_swap():
+    global swap_df
+    try:
+        swap_df = pd.DataFrame(openbb.crypto.defi.swaps()) #default list last 100 swaps
+        swap_df.head()
+        print(swap_df)
+        print("/crypto/swaps")
+    except HTTPError as e:
+        print("Error:", e.reason)
+    return swap_df.to_json(orient='records' )
+
+@app.route('/crypto/erc20',methods=['GET'])
+def crypto_erc20():
+    global erc_df
+    try:
+        erc_df = pd.DataFrame(openbb.crypto.onchain.erc20_tokens())
+        erc_df.head()
+        print(erc_df)
+    except HTTPError as e:
+        print("Error", e.reason)
+    return erc_df.to_json(orient='records')
+
+@app.route('/crypto/nft/collections', methods=['GET'])
+def displayNFTCollections():
+        global nft_df
+        try:
+            nft_df = pd.DataFrame(openbb.crypto.nft.collections())
+            nft_df.head()
+            print(nft_df)
+        except HTTPError as e:
+            print("Error", e.reason)
+        return nft_df.to_json(orient='records')
+    
+@app.route('/crypto/find', methods=['GET'])
+def cryptoFind():
+        global crypto_df
+        print('/crypto/find')
+        try:
+            symbol = request.args.get('symbol')
+            print("Selected symbol: %s" % symbol)
+            #crypto_df = pd.DataFrame(openbb.crypto.find("eth", "CoinGecko", "name", 25))
+            crypto_df = pd.DataFrame(openbb.crypto.find(symbol))
+            crypto_df.head()
+            print(crypto_df)   
+        except HTTPError as e:
+            print("Error", e.reason)
+        return crypto_df.to_json(orient='records')
+             
+
+# Crypto Endpoints #
+
+# Stocks Endpoints #
 @app.route('/stocks/search', methods=['GET'])
 def stock_loadSymbol():
     bodyRequest = request.get_json()
@@ -82,8 +136,10 @@ def stock_getQuote():
         results.append(quote)
         
     return results
+# Stocks Endpoints #
         
 @app.route('/')
+# AI endpoints #
 @app.route('/semantic')
 def semantic_search():
     top_k=1
@@ -138,6 +194,7 @@ def put_data():
     age = data['age']
     # Do something with the data
     return jsonify({'status': 'success', 'name':name,'age':age})
+# AI endpoints #
 
 if __name__ == '__main__':
     app.run()
