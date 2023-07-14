@@ -51,7 +51,7 @@ def get_documents():
 def myKeys():
     print(openbb.keys.mykeys(show=True))
     
-# Crypto Endpoints
+#### Crypto Endpoints ####
 @app.route('/crypto/swaps', methods=['GET'])
 def crypto_swap():
     global swap_df
@@ -100,6 +100,48 @@ def cryptoFind():
         except HTTPError as e:
             print("Error", e.reason)
         return crypto_df.to_json(orient='records')
+
+# The default list endpoint returns a list of forex pairs, stablecoin pairs and popular stock symbols with current price
+@app.route('/default/forex', methods=['GET'])
+def defaultForex():
+        tickers = ['AED', 'AFN', 'ALL', 'AMD', 'ANG', 'AOA', 'ARS', 'AUD', 'AWG', 'AZN', 'BAM', 'BBD',
+                   'BDT', 'BGN', 'BHD', 'BIF', 'BMD', 'BND', 'BOB', 'BRL', 'BSD', 'BTN', 'BWP', 'BZD', 
+                   'CAD', 'CDF', 'CHF', 'CLF', 'CLP', 'CNH', 'CNY', 'COP', 'CUP', 'CVE', 'CZK', 'DJF', 
+                   'DKK', 'DOP', 'DZD', 'EGP', 'ERN', 'ETB', 'EUR', 'FJD', 'FKP', 'GBP', 'GEL', 'GHS', 
+                   'GIP', 'GMD', 'GNF', 'GTQ', 'GYD', 'HKD', 'HNL', 'HRK', 'HTG', 'HUF', 'ICP', 'IDR', 
+                   'ILS', 'INR', 'IQD', 'IRR', 'ISK', 'JEP', 'JMD', 'JOD', 'JPY', 'KES', 'KGS', 'KHR',
+                   'KMF', 'KPW', 'KRW', 'KWD', 'KYD', 'KZT', 'LAK', 'LBP', 'LKR', 'LRD', 'LSL', 'LYD', 
+                   'MAD', 'MDL', 'MGA', 'MKD', 'MMK', 'MNT', 'MOP', 'MRO', 'MRU', 'MUR', 'MVR', 'MWK', 
+                   'MXN', 'MYR', 'MZN', 'NAD', 'NGN', 'NOK', 'NPR', 'NZD', 'OMR', 'PAB', 'PEN', 'PGK', 
+                   'PHP', 'PKR', 'PLN', 'PYG', 'QAR', 'RON', 'RSD', 'RUB', 'RUR', 'RWF', 'SAR', 'SBDf', 
+                   'SCR', 'SDG', 'SDR', 'SEK', 'SGD', 'SHIB', 'SHP', 'SLL', 'SOS', 'SRD', 'SYP', 'SZL', 
+                   'THB', 'TJS', 'TMT', 'TND', 'TOP', 'TRY', 'TTD', 'TWD', 'TZS', 'UAH', 'UGX', 'USD', 
+                   'UYU', 'UZS', 'VND', 'VUV', 'WBTC', 'WST', 'XAF', 'XCD', 'XDR', 'XOF', 'XPF', 'YER', 
+                   'ZAR', 'ZMW', 'ZWL']
+        
+        return jsonify(tickers)
+
+@app.route('/default/crypto', methods=['GET'])
+def defaultCrypto():
+       tickers = ['AAVE', 'ADA', 'ALGO', 'AMP', 'APE', 'ATOM', 'AVAX', 'AXS', 'BCH', 'BNB',
+                    'BTC', 'CRO', 'DOGE', 'DOT', 'EOS', 'ETH', 'FTM', 'GRT', 'LUNA', 'MATIC',
+                    'NEO', 'NEXO', 'ONE', 'OMG', 'SOL', 'UNI', 'USDC', 'USDT', 'VET', 'XLM',
+                    'XRP', 'XTZ', 'YFI']
+        
+       return jsonify(tickers)
+    
+@app.route('/default/stocks', methods=['GET'])
+def defaultStocks():
+       tickers = ['AAPL', 'ABBV', 'ABT', 'ACN', 'ADP', 'ADSK', 'AMAT', 'AMGN', 'AMZN', 'APA',
+                    'APC', 'AT&T', 'AXP', 'BA', 'BAC', 'BDX', 'BMY', 'BRKB', 'BRK.A', 'BRK.B',
+                    'C', 'CAT', 'CELG', 'CHM', 'CL', 'COF', 'COST', 'CRM', 'CSCO', 'CVS',
+                    'DHR', 'DIS', 'DOV', 'DOW', 'DTE', 'EIX', 'EMR', 'EXC', 'EXPD', 'F',
+                    'FB', 'FDX', 'FIS', 'FITB', 'FLS', 'GE', 'GOOG', 'GOOGL', 'GS', 'HAL',
+                    'HON', 'HPQ', 'IBM', 'INTC', 'JNJ', 'JPM', 'KO', 'LLY', 'LMT', 'MA',
+                    'MMM', 'MO', 'MSFT', 'MTD', 'RTN', 'SBUX', 'SO', 'SPG', 'T', 'TGT',
+                    'UNH', 'UNP', 'UPS', 'V', 'VZ', 'WMT', 'XOM']
+        
+       return jsonify(tickers)
     
 #Requires API_GLASSNODE_KEY
 @app.route('/crypto/actively-traded', methods=['GET'])
@@ -118,18 +160,23 @@ def cryptoGetActivelyTraded():
 @app.route('/crypto/graph', methods=['GET'])
 def cryptoGraph():
     global chart_df_df
+    global chart_fig
     try:
        symbol = request.args.get('symbol')
        print("Selected symbol: %s" % symbol)
-       chart_df = openbb.crypto.candle(symbol)
+       chart_df = openbb.crypto.candle(symbol={symbol},external_axes=True)
+       chart_fig = chart_df.iplot(asFigure=True, kind='candle', xTitle='Time interval', yTitle='Price', title='Cryptocurrency Market', template="simple_white")
+       print("showing chart")
+       chart_fig.show()
+       #chart_df_df = pd.DataFrame(chart_fig)
        #chart_df.update_layout(template="seaborn")
-       chart_df.head()
-       print(chart_df)
+       #chart_df_df.head()
+       #chart_df.head()
     except HTTPError as e:
          print("Error", e.reason)
-    return "Success"
+    return "Success" #jsonify(chart_df_df.to_dict())
 
-# Crypto Endpoints #
+#### Crypto Endpoints ####
 
 # Stocks Endpoints #
 @app.route('/stocks/search', methods=['GET'])
