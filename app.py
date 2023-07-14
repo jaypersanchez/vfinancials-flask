@@ -50,7 +50,23 @@ def get_documents():
 @app.route('/mykeys')
 def myKeys():
     print(openbb.keys.mykeys(show=True))
+
+### News top 10 headlines
+@app.route('/news-headlines', methods=['GET'])
+def newsHeadlines():
+    url = 'https://newsapi.org/v2/everything?q=canadian politics&apiKey=06b87cc37802434492aab1085f401232'
+    response = requests.get(url)
+
+    # Check it was successful
+    if response.status_code == 200: 
+            # Show the data
+            print(response.json())
+    else:
+            # Show an error
+            print('Request Error')
     
+    return jsonify(response.json())
+
 #### Crypto Endpoints ####
 @app.route('/crypto/swaps', methods=['GET'])
 def crypto_swap():
@@ -142,7 +158,8 @@ def defaultCrypto():
                     'BTC', 'CRO', 'DOGE', 'DOT', 'EOS', 'ETH', 'FTM', 'GRT', 'LUNA', 'MATIC',
                     'NEO', 'NEXO', 'ONE', 'OMG', 'SOL', 'UNI', 'USDC', 'USDT', 'VET', 'XLM',
                     'XRP', 'XTZ', 'YFI']
-        
+       erc_df = pd.DataFrame(openbb.crypto.onchain.erc20_tokens()) 
+       print(erc_df)
        return jsonify(tickers)
     
 @app.route('/default/stocks', methods=['GET'])
