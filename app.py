@@ -104,6 +104,8 @@ def cryptoFind():
 # The default list endpoint returns a list of forex pairs, stablecoin pairs and popular stock symbols with current price
 @app.route('/default/forex', methods=['GET'])
 def defaultForex():
+        #url = 'https://www.freeforexapi.com/api/live'
+        url = 'https://www.freeforexapi.com/api/live?pairs=USDCAD,USDJPY,EURUSD'
         tickers = ['AED', 'AFN', 'ALL', 'AMD', 'ANG', 'AOA', 'ARS', 'AUD', 'AWG', 'AZN', 'BAM', 'BBD',
                    'BDT', 'BGN', 'BHD', 'BIF', 'BMD', 'BND', 'BOB', 'BRL', 'BSD', 'BTN', 'BWP', 'BZD', 
                    'CAD', 'CDF', 'CHF', 'CLF', 'CLP', 'CNH', 'CNY', 'COP', 'CUP', 'CVE', 'CZK', 'DJF', 
@@ -118,8 +120,21 @@ def defaultForex():
                    'THB', 'TJS', 'TMT', 'TND', 'TOP', 'TRY', 'TTD', 'TWD', 'TZS', 'UAH', 'UGX', 'USD', 
                    'UYU', 'UZS', 'VND', 'VUV', 'WBTC', 'WST', 'XAF', 'XCD', 'XDR', 'XOF', 'XPF', 'YER', 
                    'ZAR', 'ZMW', 'ZWL']
-        
-        return jsonify(tickers)
+        # Get the data
+        params = {'pairs': 'USDCAD,USDJPY,EURUSD'}
+        global response
+        #response = requests.get(url, params = params)
+        response = requests.get(url)
+
+        # Check it was successful
+        if response.status_code == 200: 
+            # Show the data
+            print(response.json())
+        else:
+            # Show an error
+            print('Request Error')
+    
+        return jsonify(response.json())
 
 @app.route('/default/crypto', methods=['GET'])
 def defaultCrypto():
