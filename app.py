@@ -120,24 +120,19 @@ def cryptoFind():
 # The default list endpoint returns a list of forex pairs, stablecoin pairs and popular stock symbols with current price
 @app.route('/default/forex', methods=['GET'])
 def defaultForex():
-        #url = 'https://www.freeforexapi.com/api/live'
-        url = 'https://www.freeforexapi.com/api/live?pairs=USDCAD,USDJPY,EURUSD'
-        tickers = ['AED', 'AFN', 'ALL', 'AMD', 'ANG', 'AOA', 'ARS', 'AUD', 'AWG', 'AZN', 'BAM', 'BBD',
-                   'BDT', 'BGN', 'BHD', 'BIF', 'BMD', 'BND', 'BOB', 'BRL', 'BSD', 'BTN', 'BWP', 'BZD', 
-                   'CAD', 'CDF', 'CHF', 'CLF', 'CLP', 'CNH', 'CNY', 'COP', 'CUP', 'CVE', 'CZK', 'DJF', 
-                   'DKK', 'DOP', 'DZD', 'EGP', 'ERN', 'ETB', 'EUR', 'FJD', 'FKP', 'GBP', 'GEL', 'GHS', 
-                   'GIP', 'GMD', 'GNF', 'GTQ', 'GYD', 'HKD', 'HNL', 'HRK', 'HTG', 'HUF', 'ICP', 'IDR', 
-                   'ILS', 'INR', 'IQD', 'IRR', 'ISK', 'JEP', 'JMD', 'JOD', 'JPY', 'KES', 'KGS', 'KHR',
-                   'KMF', 'KPW', 'KRW', 'KWD', 'KYD', 'KZT', 'LAK', 'LBP', 'LKR', 'LRD', 'LSL', 'LYD', 
-                   'MAD', 'MDL', 'MGA', 'MKD', 'MMK', 'MNT', 'MOP', 'MRO', 'MRU', 'MUR', 'MVR', 'MWK', 
-                   'MXN', 'MYR', 'MZN', 'NAD', 'NGN', 'NOK', 'NPR', 'NZD', 'OMR', 'PAB', 'PEN', 'PGK', 
-                   'PHP', 'PKR', 'PLN', 'PYG', 'QAR', 'RON', 'RSD', 'RUB', 'RUR', 'RWF', 'SAR', 'SBDf', 
-                   'SCR', 'SDG', 'SDR', 'SEK', 'SGD', 'SHIB', 'SHP', 'SLL', 'SOS', 'SRD', 'SYP', 'SZL', 
-                   'THB', 'TJS', 'TMT', 'TND', 'TOP', 'TRY', 'TTD', 'TWD', 'TZS', 'UAH', 'UGX', 'USD', 
-                   'UYU', 'UZS', 'VND', 'VUV', 'WBTC', 'WST', 'XAF', 'XCD', 'XDR', 'XOF', 'XPF', 'YER', 
-                   'ZAR', 'ZMW', 'ZWL']
+        url = 'https://www.freeforexapi.com/api/live'
+        #url = 'https://www.freeforexapi.com/api/live?pairs=USDCAD,USDJPY,EURUSD'
+        tickers = ['EURUSD', 'USDJPY', 'GBPUSD', 'USDCHF', 'AUDUSD', 'USDCAD', 'NZDUSD', 
+                   'EURGBP', 'EURJPY', 'GBPJPY', 'CHFJPY', 'EURCHF', 'GBPCHF', 'AUDJPY', 
+                   'AUDNZD', 'AUDCAD', 'CADJPY', 'NZDJPY', 'GBPAUD', 'GBPCAD', 'GBPNZD', 
+                   'EURAUD', 'EURCAD', 'EURNZD', 'USDHKD', 'USDSGD', 'USDTRY', 'USDZAR', 
+                   'USDMXN', 'USDNOK', 'USDSEK', 'USDDKK', 'USDCNH', 'EURTRY', 'EURNOK', 
+                   'EURSEK', 'EURDKK', 'EURHUF', 'EURPLN', 'AUDCHF', 'AUDHKD', 'AUDSGD', 
+                   'AUDNZD', 'CADCHF', 'CADHKD', 'NZDCHF', 'NZDHKD', 'SGDJPY', 'SGDHKD', 
+                   'HKDJPY', 'TRYJPY', 'ZARJPY', 'MXNJPY', 'NOKJPY', 'SEKJPY', 'DKKJPY', 
+                   'CNHJPY', 'HUFJPY', 'PLNJPY']
         # Get the data
-        params = {'pairs': 'USDCAD,USDJPY,EURUSD'}
+        #params = {'pairs': 'USDCAD,USDJPY,EURUSD'}
         global response
         #response = requests.get(url, params = params)
         response = requests.get(url)
@@ -150,7 +145,8 @@ def defaultForex():
             # Show an error
             print('Request Error')
     
-        return jsonify(response.json())
+        #return jsonify(response.json())
+        return jsonify(tickers)
 
 @app.route('/default/crypto', methods=['GET'])
 def defaultCrypto():
