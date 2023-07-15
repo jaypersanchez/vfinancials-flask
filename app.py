@@ -6,10 +6,13 @@ import numpy as np
 import os
 import openai
 import requests
+from dotenv import load_dotenv
+load_dotenv()
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
-openai_api_key = os.environ["OPENAI_API_KEY"]
-openai.api_key = openai.api_key = openai_api_key
+#openai_api_key = os.environ["OPENAI_API_KEY"]
+openai_api_key = os.getenv('OPENAI_API_KEY')
+#openai.api_key = openai.api_key = openai_api_key
 #model_engine = "text-embedding-ada-002"
 model_engine = "gpt-4"
 model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
@@ -18,7 +21,7 @@ from flask_cors import CORS
 from openbb_terminal.sdk import openbb
 import sys
 import pandas as pd
-
+newsApiKey = os.getenv('NEWS_API_KEY')
 
 #Test Data for embedding
 documents = [
@@ -54,7 +57,8 @@ def myKeys():
 ### News top 10 headlines
 @app.route('/news-headlines', methods=['GET'])
 def newsHeadlines():
-    url = 'https://newsapi.org/v2/everything?q=canadian politics&apiKey=06b87cc37802434492aab1085f401232'
+    print("news " + newsApiKey)
+    url = 'https://newsapi.org/v2/everything?q=canadian politics&apiKey='+newsApiKey
     response = requests.get(url)
 
     # Check it was successful
@@ -115,7 +119,23 @@ def cryptoFind():
             print(crypto_df)   
         except HTTPError as e:
             print("Error", e.reason)
-        return crypto_df.to_json(orient='records')
+        return crypto_df.to_json()
+    
+@app.route('/crypto/price', methods=['GET'])
+def cryptoPrice():
+        global crypto_price
+        global crypto_price_dict
+        print('/crypto/price')
+        try:
+            _symbol = request.args.get('symbol')
+            print("Selected symbol: %s" % _symbol)
+            crypto_price = openbb.crypto.price(symbol=_symbol)
+            print(crypto_price[0])
+            crypto_price_dict = dict(zip(('Symbol','Price', 'Change'), crypto_price))
+        except HTTPError as e:
+            print("Error", e.reason)
+            return jsonify({"error": e.reason})
+        return jsonify(crypto_price_dict)
 
 # The default list endpoint returns a list of forex pairs, stablecoin pairs and popular stock symbols with current price
 @app.route('/default/forex', methods=['GET'])
