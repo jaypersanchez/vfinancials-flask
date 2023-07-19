@@ -137,6 +137,27 @@ def cryptoPrice():
             return jsonify({"error": e.reason})
         return jsonify(crypto_price_dict)
 
+@app.route('/crypto/pair', methods=['GET'])
+def cryptoPair():
+        global response
+        url = "https://api.api-ninjas.com/v1/cryptoprice"
+        print('/crypto/pair')
+        headers = {
+            "X-Api-Key": "wQaNxuTGkW9g3CzZhBeV4g==BicRenimezKwQFN0"
+        }
+        _symbol = request.args.get('symbol')
+        print(url+"?symbol="+_symbol)
+        response = requests.get(url+"?symbol="+_symbol, headers=headers)
+        # Check it was successful
+        if response.status_code == 200: 
+            # Show the data
+            print(response.json())
+            return response.json()
+        else:
+            # Show an error
+            print('Request Error')
+            return jsonify({"Error":"Request Error"})
+  
 # The default list endpoint returns a list of forex pairs, stablecoin pairs and popular stock symbols with current price
 @app.route('/default/forex', methods=['GET'])
 def defaultForex():
