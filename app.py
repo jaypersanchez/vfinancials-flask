@@ -57,19 +57,21 @@ def myKeys():
 ### News top 10 headlines
 @app.route('/news-headlines', methods=['GET'])
 def newsHeadlines():
-    #print("news " + newsApiKey)
-    url = 'https://newsapi.org/v2/everything?q=canadian politics&apiKey='+newsApiKey
+    #url = 'https://newsapi.org/v2/everything?q=canadian politics&apiKey=' + newsApiKey
+    url = "https://newsapi.org/v2/top-headlines?country=us&apiKey=06b87cc37802434492aab1085f401232"
+    print("News URL " + url)
     response = requests.get(url)
-
     # Check it was successful
+    #print(response)
     if response.status_code == 200: 
             # Show the data
-            print(response.status.code)
+            print(response.status_code)
+            print(response.json())
     else:
             # Show an error
             print('Request Error')
     
-    return jsonify(response.json())
+    return response.json()
 
 #### Crypto Endpoints ####
 @app.route('/crypto/swaps', methods=['GET'])
