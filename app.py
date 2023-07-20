@@ -222,29 +222,22 @@ def cryptoGetActivelyTraded():
         active_df = pd.DataFrame(openbb.crypto.dd.active(symbol))
         active_df.head()
         print(active_df)
+        return active_df.to_json(orient='records')
     except HTTPError as e:
          print("Error", e.reason)
-    return active_df.to_json(orient='records')
+         return jsonify({"error": e.reason})
              
 @app.route('/crypto/graph', methods=['GET'])
 def cryptoGraph():
-    global chart_df_df
-    global chart_fig
-    try:
-       symbol = request.args.get('symbol')
-       print("Selected symbol: %s" % symbol)
-       chart_df = openbb.crypto.candle(symbol={symbol},external_axes=True)
-       chart_fig = chart_df.iplot(asFigure=True, kind='candle', xTitle='Time interval', yTitle='Price', title='Cryptocurrency Market', template="simple_white")
-       print("showing chart")
-       chart_fig.show()
-       #chart_df_df = pd.DataFrame(chart_fig)
-       #chart_df.update_layout(template="seaborn")
-       #chart_df_df.head()
-       #chart_df.head()
-    except HTTPError as e:
-         print("Error", e.reason)
-    return "Success" #jsonify(chart_df_df.to_dict())
-
+    symbol = request.args.get('symbol')
+    chart_df = openbb.crypto.candle(symbol)
+    chart_fig = chart_df.iplot(asFigure=True, kind='candle', xTitle='Time interval', yTitle='Price', title='Cryptocurrency Market', template="simple_white")
+    chart_fig.show()
+    chart_df_dict = {
+        'labels': chart_df.index,
+        'values': chart_df.values
+        }
+    return jsonify(chart_df_dict)
 #### Crypto Endpoints ####
 
 # Stocks Endpoints #
