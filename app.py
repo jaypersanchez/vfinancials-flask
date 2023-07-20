@@ -73,7 +73,8 @@ def newsHeadlines():
     
     return response.json()
 
-#### Crypto Endpoints ####
+######################################### Crypto Endpoints ####################################################
+
 @app.route('/crypto/swaps', methods=['GET'])
 def crypto_swap():
     global swap_df
@@ -159,6 +160,22 @@ def cryptoPair():
             # Show an error
             print('Request Error')
             return jsonify({"Error":"Request Error"})
+
+@app.route('/crypto/graph', methods=['GET'])
+def cryptoGraph():
+    symbol = request.args.get('symbol')
+    chart_df = openbb.crypto.candle(symbol)
+    #chart_fig = chart_df.iplot(asFigure=True, kind='candle', xTitle='Time interval', yTitle='Price', title='Cryptocurrency Market', template="simple_white")
+    #chart_fig.show()
+    #chart_df_dict = {
+    #    'labels': chart_df.index,
+    #    'values': chart_df.values
+    #    }
+    return chart_df #jsonify(chart_df_dict)
+        
+######################################### Crypto Endpoints ####################################################
+
+######################################### Default Endpoints - free subscription access level ####################################################
   
 # The default list endpoint returns a list of forex pairs, stablecoin pairs and popular stock symbols with current price
 @app.route('/default/forex', methods=['GET'])
@@ -213,7 +230,11 @@ def defaultStocks():
                     'UNH', 'UNP', 'UPS', 'V', 'VZ', 'WMT', 'XOM']
         
        return jsonify(tickers)
-    
+   
+######################################### Default Endpoints - free subscription access level ####################################################
+
+######################################### Paid Subscription Endpoints - Normally requires API Key from source ###################################
+
 #Requires API_GLASSNODE_KEY
 @app.route('/crypto/actively-traded', methods=['GET'])
 def cryptoGetActivelyTraded():
@@ -229,20 +250,11 @@ def cryptoGetActivelyTraded():
          print("Error", e.reason)
          return jsonify({"error": e.reason})
              
-@app.route('/crypto/graph', methods=['GET'])
-def cryptoGraph():
-    symbol = request.args.get('symbol')
-    chart_df = openbb.crypto.candle(symbol)
-    #chart_fig = chart_df.iplot(asFigure=True, kind='candle', xTitle='Time interval', yTitle='Price', title='Cryptocurrency Market', template="simple_white")
-    #chart_fig.show()
-    #chart_df_dict = {
-    #    'labels': chart_df.index,
-    #    'values': chart_df.values
-    #    }
-    return chart_df #jsonify(chart_df_dict)
-#### Crypto Endpoints ####
+######################################### Paid Subscription Endpoints - Normally requires API Key from source ###################################
 
-# Stocks Endpoints #
+
+######################################### Stocks Endpoints ######################################################################################
+
 @app.route('/stocks/search', methods=['GET'])
 def stock_loadSymbol():
     bodyRequest = request.get_json()
@@ -274,7 +286,10 @@ def stock_getQuote():
         results.append(quote)
         
     return results
-# Stocks Endpoints #
+
+######################################### Stocks Endpoints ######################################################################################
+
+######################################### AI Endpoints ######################################################################################
         
 @app.route('/')
 # AI endpoints #
@@ -312,6 +327,8 @@ def semantic_search():
     completion = data["choices"][0]["text"]
     #response = format_response(query, result_list[0])
     return str(completion)
+
+######################################### AI Endpoints ######################################################################################
     
 @app.route('/')
 def hello():
