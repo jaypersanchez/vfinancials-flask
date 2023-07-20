@@ -57,14 +57,14 @@ def myKeys():
 ### News top 10 headlines
 @app.route('/news-headlines', methods=['GET'])
 def newsHeadlines():
-    print("news " + newsApiKey)
+    #print("news " + newsApiKey)
     url = 'https://newsapi.org/v2/everything?q=canadian politics&apiKey='+newsApiKey
     response = requests.get(url)
 
     # Check it was successful
     if response.status_code == 200: 
             # Show the data
-            print(response.json())
+            print(response.status.code)
     else:
             # Show an error
             print('Request Error')
@@ -78,8 +78,8 @@ def crypto_swap():
     try:
         swap_df = pd.DataFrame(openbb.crypto.defi.swaps()) #default list last 100 swaps
         swap_df.head()
-        print(swap_df)
-        print("/crypto/swaps")
+        #print(swap_df)
+        #print("/crypto/swaps")
     except HTTPError as e:
         print("Error:", e.reason)
     return swap_df.to_json(orient='records' )
@@ -90,7 +90,7 @@ def crypto_erc20():
     try:
         erc_df = pd.DataFrame(openbb.crypto.onchain.erc20_tokens())
         erc_df.head()
-        print(erc_df)
+        #print(erc_df)
     except HTTPError as e:
         print("Error", e.reason)
     return erc_df.to_json(orient='records')
@@ -101,7 +101,7 @@ def displayNFTCollections():
         try:
             nft_df = pd.DataFrame(openbb.crypto.nft.collections())
             nft_df.head()
-            print(nft_df)
+            #print(nft_df)
         except HTTPError as e:
             print("Error", e.reason)
         return nft_df.to_json(orient='records')
@@ -109,14 +109,14 @@ def displayNFTCollections():
 @app.route('/crypto/find', methods=['GET'])
 def cryptoFind():
         global crypto_df
-        print('/crypto/find')
+        #print('/crypto/find')
         try:
             symbol = request.args.get('symbol')
-            print("Selected symbol: %s" % symbol)
+            #print("Selected symbol: %s" % symbol)
             #crypto_df = pd.DataFrame(openbb.crypto.find("eth", "CoinGecko", "name", 25))
             crypto_df = pd.DataFrame(openbb.crypto.find(symbol))
             crypto_df.head()
-            print(crypto_df)   
+            #print(crypto_df)   
         except HTTPError as e:
             print("Error", e.reason)
         return crypto_df.to_json()
@@ -125,12 +125,12 @@ def cryptoFind():
 def cryptoPrice():
         global crypto_price
         global crypto_price_dict
-        print('/crypto/price')
+        #print('/crypto/price')
         try:
             _symbol = request.args.get('symbol')
-            print("Selected symbol: %s" % _symbol)
+            #print("Selected symbol: %s" % _symbol)
             crypto_price = openbb.crypto.price(symbol=_symbol)
-            print(crypto_price[0])
+            #print(crypto_price[0])
             crypto_price_dict = dict(zip(('Symbol','Price', 'Change'), crypto_price))
         except HTTPError as e:
             print("Error", e.reason)
@@ -141,17 +141,17 @@ def cryptoPrice():
 def cryptoPair():
         global response
         url = "https://api.api-ninjas.com/v1/cryptoprice"
-        print('/crypto/pair')
+        #print('/crypto/pair')
         headers = {
             "X-Api-Key": "wQaNxuTGkW9g3CzZhBeV4g==BicRenimezKwQFN0"
         }
         _symbol = request.args.get('symbol')
-        print(url+"?symbol="+_symbol)
+        #print(url+"?symbol="+_symbol)
         response = requests.get(url+"?symbol="+_symbol, headers=headers)
         # Check it was successful
         if response.status_code == 200: 
             # Show the data
-            print(response.json())
+            #print(response.json())
             return response.json()
         else:
             # Show an error
@@ -181,7 +181,7 @@ def defaultForex():
         # Check it was successful
         if response.status_code == 200: 
             # Show the data
-            print(response.json())
+            print(response.status_code)
         else:
             # Show an error
             print('Request Error')
@@ -196,7 +196,7 @@ def defaultCrypto():
                     'NEO', 'NEXO', 'ONE', 'OMG', 'SOL', 'UNI', 'USDC', 'USDT', 'VET', 'XLM',
                     'XRP', 'XTZ', 'YFI']
        erc_df = pd.DataFrame(openbb.crypto.onchain.erc20_tokens()) 
-       print(erc_df)
+       #print(erc_df)
        return jsonify(tickers)
     
 @app.route('/default/stocks', methods=['GET'])
@@ -218,10 +218,10 @@ def cryptoGetActivelyTraded():
     global active_df
     try:
         symbol = request.args.get('symbol')
-        print("Selected symbol: %s" % symbol)
+        #print("Selected symbol: %s" % symbol)
         active_df = pd.DataFrame(openbb.crypto.dd.active(symbol))
         active_df.head()
-        print(active_df)
+        #print(active_df)
         return active_df.to_json(orient='records')
     except HTTPError as e:
          print("Error", e.reason)
@@ -231,13 +231,13 @@ def cryptoGetActivelyTraded():
 def cryptoGraph():
     symbol = request.args.get('symbol')
     chart_df = openbb.crypto.candle(symbol)
-    chart_fig = chart_df.iplot(asFigure=True, kind='candle', xTitle='Time interval', yTitle='Price', title='Cryptocurrency Market', template="simple_white")
-    chart_fig.show()
-    chart_df_dict = {
-        'labels': chart_df.index,
-        'values': chart_df.values
-        }
-    return jsonify(chart_df_dict)
+    #chart_fig = chart_df.iplot(asFigure=True, kind='candle', xTitle='Time interval', yTitle='Price', title='Cryptocurrency Market', template="simple_white")
+    #chart_fig.show()
+    #chart_df_dict = {
+    #    'labels': chart_df.index,
+    #    'values': chart_df.values
+    #    }
+    return chart_df #jsonify(chart_df_dict)
 #### Crypto Endpoints ####
 
 # Stocks Endpoints #
@@ -251,7 +251,7 @@ def stock_loadSymbol():
         stocks_df = openbb.stocks.search(country=selectedCountry, exchange_country=selectedExchange)
     except HTTPError as e:
         print("Error:",e.reason)
-    print(f"/stocks/search {selectedCountry}::{selectedExchange}")
+    #print(f"/stocks/search {selectedCountry}::{selectedExchange}")
     #return(f"/stocks/search {selectedCountry}::{selectedExchange}")
     return jsonify(stocks_df.to_json(orient='index'))
     
@@ -260,7 +260,7 @@ def stock_loadSymbol():
 @app.route('/stocks/quote', methods=['GET'])
 def stock_getQuote():
     symbols = request.args.get('symbol')
-    print(f"/stocks/quote {symbols}")
+    #print(f"/stocks/quote {symbols}")
     # iterate through passed in symbols
     results = []
     quotes: object = []
