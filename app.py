@@ -164,13 +164,22 @@ def cryptoPair():
 def cryptoGraph():
     symbol = request.args.get('symbol')
     chart_df = openbb.crypto.candle(symbol)
-    #chart_fig = chart_df.iplot(asFigure=True, kind='candle', xTitle='Time interval', yTitle='Price', title='Cryptocurrency Market', template="simple_white")
-    #chart_fig.show()
-    #chart_df_dict = {
-    #    'labels': chart_df.index,
-    #    'values': chart_df.values
-    #    }
+    #openbb.crypto.candle(symbol='BTC', start_date='2020-01-01', end_date='2020-12-31', interval='30m', exchange='coinbase', to_symbol='usd', source='CCXT', volume=True, title="Bitcoin Price over 2020", external_axes=False, yscale='linear', raw=False)
     return chart_df #jsonify(chart_df_dict)
+
+#load function - when given specific symbol and other data, it will return a tabular format of open, close, high and low.  
+@app.route('/crypto/load', methods=['GET'])
+def cryptoLoad():
+    symbol = request.args.get('symbol')
+    try:
+        #must first load
+        loaded_df = openbb.crypto.load(symbol=symbol,to_symbol="usd",start_date="2019-01-01",source="YahooFinance")
+        print(loaded_df.to_json())
+    except HTTPError as e:
+        print("Error", e.reason)
+        return jsonify({"error": e.reason})
+    return jsonify(load_df.to_json())
+
         
 ######################################### Crypto Endpoints ####################################################
 
@@ -181,18 +190,14 @@ def cryptoGraph():
 def newsHeadlines():
     #url = 'https://newsapi.org/v2/everything?q=canadian politics&apiKey=' + newsApiKey
     url = "https://newsapi.org/v2/top-headlines?country=us&apiKey=06b87cc37802434492aab1085f401232"
-    #print("News URL " + url)
     response = requests.get(url)
     # Check it was successful
-    #print(response)
     if response.status_code == 200: 
             # Show the data
             print(response.status_code)
-            #print(response.json())
     else:
             # Show an error
             print('Request Error')
-    
     return response.json()
 
   
@@ -300,7 +305,24 @@ def stock_load():
     
     return jsonify(stocks_df.to_json(orient='index'))
 
+@app.route('/stocks/stockeodquote', methods=['GET'])
+def stock_stockEODQuote():
+    symbols = request.args.get('symbol')
+    print(f"/stocks/stockquote {symbols}")
+    url = "https://eodhistoricaldata.com/api/eod/" + symbols + "?fmt=json&filter=last_close&api_token=640dc8e05ac285.37857741"
+    print("News URL " + url)
+    response = requests.get(url)
+    # Check it was successful
+    #print(response)
+    if response.status_code == 200: 
+            # Show the data
+            print(response.status_code)
+            print(response.json())
+    else:
+            # Show an error
+            print('Request Error')
     
+    return jsonify(response.json())
 
 #Requires API_KEY_FINANCIALMODELINGPREP 
 @app.route('/stocks/quote', methods=['GET'])
