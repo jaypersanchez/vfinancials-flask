@@ -54,24 +54,23 @@ def get_documents():
 def myKeys():
     print(openbb.keys.mykeys(show=True))
 
-### News top 10 headlines
-@app.route('/news-headlines', methods=['GET'])
-def newsHeadlines():
-    #url = 'https://newsapi.org/v2/everything?q=canadian politics&apiKey=' + newsApiKey
-    url = "https://newsapi.org/v2/top-headlines?country=us&apiKey=06b87cc37802434492aab1085f401232"
-    print("News URL " + url)
-    response = requests.get(url)
-    # Check it was successful
-    #print(response)
-    if response.status_code == 200: 
-            # Show the data
-            print(response.status_code)
-            print(response.json())
-    else:
-            # Show an error
-            print('Request Error')
-    
-    return response.json()
+
+######################################### Forex Endpoints ####################################################
+
+# get forex quote
+@app.route('/forex/quote', methods=['GET'])
+def forexQuote():
+    global quote_df
+    try:
+        symbol = request.args.get('symbol')
+        quote_df = openbb.forex.quote(symbol)
+        quote_df.head()
+    except HTTPError as e:
+        print("Error:", e.reason)
+    return quote_df.to_json(orient='records' )
+
+
+######################################### Forext Endpoints ####################################################
 
 ######################################### Crypto Endpoints ####################################################
 
@@ -177,6 +176,26 @@ def cryptoGraph():
 
 ######################################### Default Endpoints - free subscription access level ####################################################
   
+### News top 10 headlines
+@app.route('/news-headlines', methods=['GET'])
+def newsHeadlines():
+    #url = 'https://newsapi.org/v2/everything?q=canadian politics&apiKey=' + newsApiKey
+    url = "https://newsapi.org/v2/top-headlines?country=us&apiKey=06b87cc37802434492aab1085f401232"
+    #print("News URL " + url)
+    response = requests.get(url)
+    # Check it was successful
+    #print(response)
+    if response.status_code == 200: 
+            # Show the data
+            print(response.status_code)
+            #print(response.json())
+    else:
+            # Show an error
+            print('Request Error')
+    
+    return response.json()
+
+  
 # The default list endpoint returns a list of forex pairs, stablecoin pairs and popular stock symbols with current price
 @app.route('/default/forex', methods=['GET'])
 def defaultForex():
@@ -265,16 +284,29 @@ def stock_loadSymbol():
         stocks_df = openbb.stocks.search(country=selectedCountry, exchange_country=selectedExchange)
     except HTTPError as e:
         print("Error:",e.reason)
-    #print(f"/stocks/search {selectedCountry}::{selectedExchange}")
-    #return(f"/stocks/search {selectedCountry}::{selectedExchange}")
+   
     return jsonify(stocks_df.to_json(orient='index'))
+
+@app.route('/stocks/load', methods=['GET'])
+def stock_load():
+    symbols = request.args.get('symbol')
+    print(f"/stocks/load {symbols}")
+    try:
+        global stocks_df
+        stocks_df = openbb.stocks.load(symbols)
+        stocks_df.head()
+    except HTTPError as e:
+        print("Error:",e.reason)
+    
+    return jsonify(stocks_df.to_json(orient='index'))
+
     
 
 #Requires API_KEY_FINANCIALMODELINGPREP 
 @app.route('/stocks/quote', methods=['GET'])
 def stock_getQuote():
     symbols = request.args.get('symbol')
-    #print(f"/stocks/quote {symbols}")
+    print(f"/stocks/quote {symbols}")
     # iterate through passed in symbols
     results = []
     quotes: object = []
