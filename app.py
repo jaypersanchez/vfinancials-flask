@@ -10,9 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
-#openai_api_key = os.environ["OPENAI_API_KEY"]
 openai_api_key = os.getenv('OPENAI_API_KEY')
-#openai.api_key = openai.api_key = openai_api_key
 #model_engine = "text-embedding-ada-002"
 model_engine = "gpt-4"
 model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
@@ -143,12 +141,10 @@ def cryptoPrice():
 def cryptoPair():
         global response
         url = "https://api.api-ninjas.com/v1/cryptoprice"
-        #print('/crypto/pair')
         headers = {
-            "X-Api-Key": "wQaNxuTGkW9g3CzZhBeV4g==BicRenimezKwQFN0"
+            "X-Api-Key": os.getenv("NINJAS_API_KEY")
         }
         _symbol = request.args.get('symbol')
-        #print(url+"?symbol="+_symbol)
         response = requests.get(url+"?symbol="+_symbol, headers=headers)
         # Check it was successful
         if response.status_code == 200: 
@@ -188,8 +184,8 @@ def cryptoLoad():
 ### News top 10 headlines
 @app.route('/news-headlines', methods=['GET'])
 def newsHeadlines():
-    #url = 'https://newsapi.org/v2/everything?q=canadian politics&apiKey=' + newsApiKey
-    url = "https://newsapi.org/v2/top-headlines?country=us&apiKey=06b87cc37802434492aab1085f401232"
+    url = os.getenv("NEWS_API_URL") + os.getenv("NEWS_API_KEY")
+    print(url)
     response = requests.get(url)
     # Check it was successful
     if response.status_code == 200: 
@@ -204,8 +200,7 @@ def newsHeadlines():
 # The default list endpoint returns a list of forex pairs, stablecoin pairs and popular stock symbols with current price
 @app.route('/default/forex', methods=['GET'])
 def defaultForex():
-        url = 'https://www.freeforexapi.com/api/live'
-        #url = 'https://www.freeforexapi.com/api/live?pairs=USDCAD,USDJPY,EURUSD'
+        url = os.getenv("FOREX_API_LIVE")
         tickers = ['EURUSD', 'USDJPY', 'GBPUSD', 'USDCHF', 'AUDUSD', 'USDCAD', 'NZDUSD', 
                    'EURGBP', 'EURJPY', 'GBPJPY', 'CHFJPY', 'EURCHF', 'GBPCHF', 'AUDJPY', 
                    'AUDNZD', 'AUDCAD', 'CADJPY', 'NZDJPY', 'GBPAUD', 'GBPCAD', 'GBPNZD', 
@@ -308,12 +303,10 @@ def stock_load():
 @app.route('/stocks/stockeodquote', methods=['GET'])
 def stock_stockEODQuote():
     symbols = request.args.get('symbol')
-    print(f"/stocks/stockquote {symbols}")
-    url = "https://eodhistoricaldata.com/api/eod/" + symbols + "?fmt=json&filter=last_close&api_token=640dc8e05ac285.37857741"
-    print("News URL " + url)
+    url = os.getenv("EOD_API_URL") + symbols + "?fmt=json&filter=last_close&api_token=" + os.getenv("EOD_API_TOKEN")
+    print("EOD Stock Quote " + url)
     response = requests.get(url)
     # Check it was successful
-    #print(response)
     if response.status_code == 200: 
             # Show the data
             print(response.status_code)
@@ -363,7 +356,7 @@ def semantic_search():
         #result_list.append(data)
         result_list =  [documents[index] for index, similarity in results]
     #format proper response using ChatGpt
-    url = "https://api.openai.com/v1/engines/text-davinci-003/completions"
+    url = os.getenv("OPENAI_COMPLETION_URL")
     prompt = "Provide a proper natural response where the prompt is " + query + " and the response is the following " + str(result_list) + " and provide source links if possible"
     #prompt = query
     payload = {
