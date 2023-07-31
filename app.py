@@ -129,11 +129,19 @@ def cryptoPair():
         response = crypto.cryptoPair(_symbol)
         return response
 
+#This function returns the raw data for the crypto graph that can be used to feed another charting tool
 @app.route('/crypto/graph', methods=['GET'])
 def cryptoGraph():
     symbol = request.args.get('symbol')
     chart_df = crypto.cryptoGraph(symbol)
     return chart_df.to_json()
+
+#This function returns the default OpenBB chart for the given symbol
+@app.route('/crypto/graph-display', methods=['GET'])
+def cryptoGraphDisplay():
+    symbol = request.args.get('symbol')
+    chart_df = crypto.cryptoGraphDisplay(symbol)
+    return chart_df
 
 #load function - when given specific symbol and other data, it will return a tabular format of open, close, high and low.  
 @app.route('/crypto/load', methods=['GET'])
