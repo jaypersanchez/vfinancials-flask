@@ -8,18 +8,23 @@ import openai
 import requests
 from dotenv import load_dotenv
 load_dotenv()
-from sentence_transformers import SentenceTransformer
+#from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 openai_api_key = os.getenv('OPENAI_API_KEY')
 #model_engine = "text-embedding-ada-002"
 model_engine = "gpt-4"
-model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+#model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
 from flask import Flask
 from flask_cors import CORS
 from openbb_terminal.sdk import openbb
 import sys
 import pandas as pd
 newsApiKey = os.getenv('NEWS_API_KEY')
+
+# modules
+from modules import crypto
+from modules import general
+from modules import forex
 
 #Test Data for embedding
 documents = [
@@ -58,15 +63,12 @@ def myKeys():
 # get forex quote
 @app.route('/forex/quote', methods=['GET'])
 def forexQuote():
-    global quote_df
     try:
         symbol = request.args.get('symbol')
-        quote_df = openbb.forex.quote(symbol)
-        quote_df.head()
+        quote_df = forex.forexQuote(symbol)
+        return quote_df
     except HTTPError as e:
         print("Error:", e.reason)
-    return quote_df.to_json(orient='records' )
-
 
 ######################################### Forext Endpoints ####################################################
 
@@ -74,107 +76,86 @@ def forexQuote():
 
 @app.route('/crypto/swaps', methods=['GET'])
 def crypto_swap():
-    global swap_df
     try:
-        swap_df = pd.DataFrame(openbb.crypto.defi.swaps()) #default list last 100 swaps
-        swap_df.head()
-        #print(swap_df)
-        #print("/crypto/swaps")
+        swap_df = crypto.crypto_swap()
     except HTTPError as e:
         print("Error:", e.reason)
-    return swap_df.to_json(orient='records' )
+    
+    return swap_df
 
 @app.route('/crypto/erc20',methods=['GET'])
 def crypto_erc20():
-    global erc_df
     try:
-        erc_df = pd.DataFrame(openbb.crypto.onchain.erc20_tokens())
-        erc_df.head()
-        #print(erc_df)
+        erc_df = crypto.crypto_erc20()
+        return erc_df
     except HTTPError as e:
         print("Error", e.reason)
-    return erc_df.to_json(orient='records')
+        return jsonify({"error": e.reason})
 
 @app.route('/crypto/nft/collections', methods=['GET'])
 def displayNFTCollections():
-        global nft_df
         try:
-            nft_df = pd.DataFrame(openbb.crypto.nft.collections())
-            nft_df.head()
-            #print(nft_df)
-        except HTTPError as e:
-            print("Error", e.reason)
-        return nft_df.to_json(orient='records')
-    
-@app.route('/crypto/find', methods=['GET'])
-def cryptoFind():
-        global crypto_df
-        #print('/crypto/find')
-        try:
-            symbol = request.args.get('symbol')
-            #print("Selected symbol: %s" % symbol)
-            #crypto_df = pd.DataFrame(openbb.crypto.find("eth", "CoinGecko", "name", 25))
-            crypto_df = pd.DataFrame(openbb.crypto.find(symbol))
-            crypto_df.head()
-            #print(crypto_df)   
-        except HTTPError as e:
-            print("Error", e.reason)
-        return crypto_df.to_json()
-    
-@app.route('/crypto/price', methods=['GET'])
-def cryptoPrice():
-        global crypto_price
-        global crypto_price_dict
-        #print('/crypto/price')
-        try:
-            _symbol = request.args.get('symbol')
-            #print("Selected symbol: %s" % _symbol)
-            crypto_price = openbb.crypto.price(symbol=_symbol)
-            #print(crypto_price[0])
-            crypto_price_dict = dict(zip(('Symbol','Price', 'Change'), crypto_price))
+            nft_df = crypto.displayNFTCollections()
+            return nft_df
         except HTTPError as e:
             print("Error", e.reason)
             return jsonify({"error": e.reason})
-        return jsonify(crypto_price_dict)
-
+    
+@app.route('/crypto/find', methods=['GET'])
+def cryptoFind():
+        try:
+            symbol = request.args.get('symbol')
+            crypto_df = crypto.cryptoFind(symbol)
+            return crypto_df
+        except HTTPError as e:
+            print("Error", e.reason)
+            return jsonify({"error": e.reason})
+    
+@app.route('/crypto/price', methods=['GET']) #bug or need a newer SDK version. 
+def cryptoPrice():
+        try:
+            _symbol = request.args.get('symbol')
+            print("Selected symbol: %s" % _symbol)
+            result = crypto.cryptoPrice(_symbol)
+            return result
+        except HTTPError as e:
+            print("Error", e.reason)
+            return jsonify({"error": e.reason})
+        
+#this method retrieves price for asset pairs - BTCUSD or BTCEUR is currently only supported
 @app.route('/crypto/pair', methods=['GET'])
 def cryptoPair():
-        global response
-        url = "https://api.api-ninjas.com/v1/cryptoprice"
-        headers = {
-            "X-Api-Key": os.getenv("NINJAS_API_KEY")
-        }
         _symbol = request.args.get('symbol')
-        response = requests.get(url+"?symbol="+_symbol, headers=headers)
-        # Check it was successful
-        if response.status_code == 200: 
-            # Show the data
-            #print(response.json())
-            return response.json()
-        else:
-            # Show an error
-            print('Request Error')
-            return jsonify({"Error":"Request Error"})
+        response = crypto.cryptoPair(_symbol)
+        return response
 
+#This function returns the raw data for the crypto graph that can be used to feed another charting tool
 @app.route('/crypto/graph', methods=['GET'])
 def cryptoGraph():
     symbol = request.args.get('symbol')
-    chart_df = openbb.crypto.candle(symbol)
-    #openbb.crypto.candle(symbol='BTC', start_date='2020-01-01', end_date='2020-12-31', interval='30m', exchange='coinbase', to_symbol='usd', source='CCXT', volume=True, title="Bitcoin Price over 2020", external_axes=False, yscale='linear', raw=False)
-    return chart_df #jsonify(chart_df_dict)
+    chart_df = crypto.cryptoGraph(symbol)
+    return chart_df.to_json()
+
+#This function returns the default OpenBB chart for the given symbol - run load function
+#  load -c ETH --vs usd then you can run this
+@app.route('/crypto/graph-display', methods=['GET'])
+def cryptoGraphDisplay():
+    symbol = request.args.get('symbol')
+    chart_df = crypto.cryptoGraphDisplay(symbol)
+    return chart_df
 
 #load function - when given specific symbol and other data, it will return a tabular format of open, close, high and low.  
 @app.route('/crypto/load', methods=['GET'])
 def cryptoLoad():
     symbol = request.args.get('symbol')
+    print("cryptoLoad " + symbol)
     try:
-        #must first load
-        loaded_df = openbb.crypto.load(symbol=symbol,to_symbol="usd",start_date="2019-01-01",source="YahooFinance")
-        print(loaded_df.to_json())
+       result = crypto.cryptoLoad(symbol)
+       return jsonify(result)
     except HTTPError as e:
         print("Error", e.reason)
         return jsonify({"error": e.reason})
-    return jsonify(load_df.to_json())
+    #return jsonify(load_df.to_json())
 
         
 ######################################### Crypto Endpoints ####################################################
@@ -184,72 +165,32 @@ def cryptoLoad():
 ### News top 10 headlines
 @app.route('/news-headlines', methods=['GET'])
 def newsHeadlines():
-    url = os.getenv("NEWS_API_URL") + os.getenv("NEWS_API_KEY")
-    print(url)
-    response = requests.get(url)
-    # Check it was successful
-    if response.status_code == 200: 
-            # Show the data
-            print(response.status_code)
-    else:
-            # Show an error
-            print('Request Error')
-    return response.json()
-
+    try:
+        response = general.newsHeadlines()
+        # Show the data
+        return response
+    except HTTPError as e:
+        return jsonify({"error": e.reason})
   
 # The default list endpoint returns a list of forex pairs, stablecoin pairs and popular stock symbols with current price
 @app.route('/default/forex', methods=['GET'])
 def defaultForex():
-        url = os.getenv("FOREX_API_LIVE")
-        tickers = ['EURUSD', 'USDJPY', 'GBPUSD', 'USDCHF', 'AUDUSD', 'USDCAD', 'NZDUSD', 
-                   'EURGBP', 'EURJPY', 'GBPJPY', 'CHFJPY', 'EURCHF', 'GBPCHF', 'AUDJPY', 
-                   'AUDNZD', 'AUDCAD', 'CADJPY', 'NZDJPY', 'GBPAUD', 'GBPCAD', 'GBPNZD', 
-                   'EURAUD', 'EURCAD', 'EURNZD', 'USDHKD', 'USDSGD', 'USDTRY', 'USDZAR', 
-                   'USDMXN', 'USDNOK', 'USDSEK', 'USDDKK', 'USDCNH', 'EURTRY', 'EURNOK', 
-                   'EURSEK', 'EURDKK', 'EURHUF', 'EURPLN', 'AUDCHF', 'AUDHKD', 'AUDSGD', 
-                   'AUDNZD', 'CADCHF', 'CADHKD', 'NZDCHF', 'NZDHKD', 'SGDJPY', 'SGDHKD', 
-                   'HKDJPY', 'TRYJPY', 'ZARJPY', 'MXNJPY', 'NOKJPY', 'SEKJPY', 'DKKJPY', 
-                   'CNHJPY', 'HUFJPY', 'PLNJPY']
-        # Get the data
-        #params = {'pairs': 'USDCAD,USDJPY,EURUSD'}
-        global response
-        #response = requests.get(url, params = params)
-        response = requests.get(url)
-
-        # Check it was successful
-        if response.status_code == 200: 
+        try: 
             # Show the data
-            print(response.status_code)
-        else:
-            # Show an error
-            print('Request Error')
+            response = general.defaultForex()
+            return response
+        except HTTPError as e:
+            return jsonify({"error": e.reason})
     
-        #return jsonify(response.json())
-        return jsonify(tickers)
-
+        
 @app.route('/default/crypto', methods=['GET'])
 def defaultCrypto():
-       tickers = ['AAVE', 'ADA', 'ALGO', 'AMP', 'APE', 'ATOM', 'AVAX', 'AXS', 'BCH', 'BNB',
-                    'BTC', 'CRO', 'DOGE', 'DOT', 'EOS', 'ETH', 'FTM', 'GRT', 'LUNA', 'MATIC',
-                    'NEO', 'NEXO', 'ONE', 'OMG', 'SOL', 'UNI', 'USDC', 'USDT', 'VET', 'XLM',
-                    'XRP', 'XTZ', 'YFI']
-       erc_df = pd.DataFrame(openbb.crypto.onchain.erc20_tokens()) 
-       #print(erc_df)
-       return jsonify(tickers)
-    
-@app.route('/default/stocks', methods=['GET'])
-def defaultStocks():
-       tickers = ['AAPL', 'ABBV', 'ABT', 'ACN', 'ADP', 'ADSK', 'AMAT', 'AMGN', 'AMZN', 'APA',
-                    'APC', 'AT&T', 'AXP', 'BA', 'BAC', 'BDX', 'BMY', 'BRKB', 'BRK.A', 'BRK.B',
-                    'C', 'CAT', 'CELG', 'CHM', 'CL', 'COF', 'COST', 'CRM', 'CSCO', 'CVS',
-                    'DHR', 'DIS', 'DOV', 'DOW', 'DTE', 'EIX', 'EMR', 'EXC', 'EXPD', 'F',
-                    'FB', 'FDX', 'FIS', 'FITB', 'FLS', 'GE', 'GOOG', 'GOOGL', 'GS', 'HAL',
-                    'HON', 'HPQ', 'IBM', 'INTC', 'JNJ', 'JPM', 'KO', 'LLY', 'LMT', 'MA',
-                    'MMM', 'MO', 'MSFT', 'MTD', 'RTN', 'SBUX', 'SO', 'SPG', 'T', 'TGT',
-                    'UNH', 'UNP', 'UPS', 'V', 'VZ', 'WMT', 'XOM']
+        try:
+           response = crypto.defaultCrypto()
+           return response
+        except HTTPError as e:
+            return jsonify({"error": e.reason})
         
-       return jsonify(tickers)
-   
 ######################################### Default Endpoints - free subscription access level ####################################################
 
 ######################################### Paid Subscription Endpoints - Normally requires API Key from source ###################################
@@ -273,6 +214,19 @@ def cryptoGetActivelyTraded():
 
 
 ######################################### Stocks Endpoints ######################################################################################
+
+@app.route('/default/stocks', methods=['GET'])
+def defaultStocks():
+       tickers = ['AAPL', 'ABBV', 'ABT', 'ACN', 'ADP', 'ADSK', 'AMAT', 'AMGN', 'AMZN', 'APA',
+                    'APC', 'AT&T', 'AXP', 'BA', 'BAC', 'BDX', 'BMY', 'BRKB', 'BRK.A', 'BRK.B',
+                    'C', 'CAT', 'CELG', 'CHM', 'CL', 'COF', 'COST', 'CRM', 'CSCO', 'CVS',
+                    'DHR', 'DIS', 'DOV', 'DOW', 'DTE', 'EIX', 'EMR', 'EXC', 'EXPD', 'F',
+                    'FB', 'FDX', 'FIS', 'FITB', 'FLS', 'GE', 'GOOG', 'GOOGL', 'GS', 'HAL',
+                    'HON', 'HPQ', 'IBM', 'INTC', 'JNJ', 'JPM', 'KO', 'LLY', 'LMT', 'MA',
+                    'MMM', 'MO', 'MSFT', 'MTD', 'RTN', 'SBUX', 'SO', 'SPG', 'T', 'TGT',
+                    'UNH', 'UNP', 'UPS', 'V', 'VZ', 'WMT', 'XOM']
+        
+       return jsonify(tickers)
 
 @app.route('/stocks/search', methods=['GET'])
 def stock_loadSymbol():
@@ -399,4 +353,5 @@ def put_data():
 # AI endpoints #
 
 if __name__ == '__main__':
-    app.run()
+    print("VFinancials Listening on " + os.getenv("SERVER_PORT"))
+    app.run(host='0.0.0.0', port=os.getenv("SERVER_PORT"))
