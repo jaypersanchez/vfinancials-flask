@@ -136,7 +136,8 @@ def cryptoGraph():
     chart_df = crypto.cryptoGraph(symbol)
     return chart_df.to_json()
 
-#This function returns the default OpenBB chart for the given symbol
+#This function returns the default OpenBB chart for the given symbol - run load function
+#  load -c ETH --vs usd then you can run this
 @app.route('/crypto/graph-display', methods=['GET'])
 def cryptoGraphDisplay():
     symbol = request.args.get('symbol')

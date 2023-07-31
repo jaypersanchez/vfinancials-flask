@@ -13,23 +13,28 @@ load_dotenv()
 
 def cryptoLoad(_symbol):
     print("crypto.cryptoLoad " + _symbol)
+    global loaded_df
     try:
         #must first load
-        loaded_df = openbb.crypto.load(symbol=_symbol,to_symbol="usd",start_date="2019-01-01",source="YahooFinance")
-        print(loaded_df.to_json())
-        return loaded_df.to_json()
+        loaded_df = openbb.crypto.load(symbol=_symbol,to_symbol="usdt",start_date="2020-01-01", end_date = "2020-01-31" ,source="CCXT")
+        #print(loaded_df.to_json())
+        #return loaded_df.to_json()
+        return loaded_df
     except HTTPError as e:
         print("Error", e.reason)
         return jsonify({"error": e.reason})
 
 def cryptoGraphDisplay(_symbol):
-    chart_df = openbb.crypto.candle(_symbol)
-    #openbb.crypto.candle(symbol='BTC', start_date='2020-01-01', end_date='2020-12-31', interval='30m', exchange='coinbase', to_symbol='usd', source='CCXT', volume=True, title="Bitcoin Price over 2020", external_axes=False, yscale='linear', raw=False)
-    return chart_df #jsonify(chart_df_dict)
+    #first must load
+    loaded_df = cryptoLoad(_symbol)
+    #chart_df = openbb.crypto.candle(_symbol)
+    chart_df = openbb.crypto.candle(symbol=_symbol, data = loaded_df, start_date='2020-01-01', end_date='2020-12-31', exchange='binance', to_symbol="usdt", source='CCXT', volume=True, title="Bitcoin Price over 2020", external_axes=False, yscale='linear', raw=False)
+    #return chart_df #jsonify(chart_df_dict)
 
 def cryptoGraph(_symbol):
-    chart_df = openbb.crypto.candle(_symbol, raw=True)
-    #openbb.crypto.candle(symbol='BTC', start_date='2020-01-01', end_date='2020-12-31', interval='30m', exchange='coinbase', to_symbol='usd', source='CCXT', volume=True, title="Bitcoin Price over 2020", external_axes=False, yscale='linear', raw=False)
+    loaded_df = cryptoLoad(_symbol)
+    #chart_df = openbb.crypto.candle(_symbol, raw=True)
+    chart_df = openbb.crypto.candle(symbol=_symbol, data = loaded_df, start_date='2020-01-01', end_date='2020-12-31', exchange='binance', to_symbol="usdt", source='CCXT', volume=True, title="Bitcoin Price over 2020", external_axes=False, yscale='linear', raw=True)
     return chart_df #jsonify(chart_df_dict)
 
 def cryptoPair(_symbol):
