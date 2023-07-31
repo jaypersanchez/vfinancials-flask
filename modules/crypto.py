@@ -17,7 +17,7 @@ def cryptoLoad(_symbol):
         #must first load
         loaded_df = openbb.crypto.load(symbol=_symbol,to_symbol="usd",start_date="2019-01-01",source="YahooFinance")
         print(loaded_df.to_json())
-        return jsonify(loaded_df.to_json())
+        return loaded_df.to_json()
     except HTTPError as e:
         print("Error", e.reason)
         return jsonify({"error": e.reason})

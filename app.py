@@ -142,7 +142,7 @@ def cryptoLoad():
     print("cryptoLoad " + symbol)
     try:
        result = crypto.cryptoLoad(symbol)
-       return jsonify(result.to_json())
+       return jsonify(result)
     except HTTPError as e:
         print("Error", e.reason)
         return jsonify({"error": e.reason})
