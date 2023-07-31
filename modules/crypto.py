@@ -22,8 +22,13 @@ def cryptoLoad(_symbol):
         print("Error", e.reason)
         return jsonify({"error": e.reason})
 
-def cryptoGraph(_symbol):
+def cryptoGraphDisplay(_symbol):
     chart_df = openbb.crypto.candle(_symbol)
+    #openbb.crypto.candle(symbol='BTC', start_date='2020-01-01', end_date='2020-12-31', interval='30m', exchange='coinbase', to_symbol='usd', source='CCXT', volume=True, title="Bitcoin Price over 2020", external_axes=False, yscale='linear', raw=False)
+    return chart_df #jsonify(chart_df_dict)
+
+def cryptoGraph(_symbol):
+    chart_df = openbb.crypto.candle(_symbol, raw=True)
     #openbb.crypto.candle(symbol='BTC', start_date='2020-01-01', end_date='2020-12-31', interval='30m', exchange='coinbase', to_symbol='usd', source='CCXT', volume=True, title="Bitcoin Price over 2020", external_axes=False, yscale='linear', raw=False)
     return chart_df #jsonify(chart_df_dict)
 

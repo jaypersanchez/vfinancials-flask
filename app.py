@@ -133,7 +133,7 @@ def cryptoPair():
 def cryptoGraph():
     symbol = request.args.get('symbol')
     chart_df = crypto.cryptoGraph(symbol)
-    return chart_df
+    return chart_df.to_json()
 
 #load function - when given specific symbol and other data, it will return a tabular format of open, close, high and low.  
 @app.route('/crypto/load', methods=['GET'])
