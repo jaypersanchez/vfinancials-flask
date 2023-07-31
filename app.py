@@ -8,18 +8,19 @@ import openai
 import requests
 from dotenv import load_dotenv
 load_dotenv()
-from sentence_transformers import SentenceTransformer
+#from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 openai_api_key = os.getenv('OPENAI_API_KEY')
 #model_engine = "text-embedding-ada-002"
 model_engine = "gpt-4"
-model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+#model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
 from flask import Flask
 from flask_cors import CORS
 from openbb_terminal.sdk import openbb
 import sys
 import pandas as pd
 newsApiKey = os.getenv('NEWS_API_KEY')
+from modules import crypto
 
 #Test Data for embedding
 documents = [
@@ -74,107 +75,79 @@ def forexQuote():
 
 @app.route('/crypto/swaps', methods=['GET'])
 def crypto_swap():
-    global swap_df
     try:
-        swap_df = pd.DataFrame(openbb.crypto.defi.swaps()) #default list last 100 swaps
+        swap_df = crypto.crypto_swap()
         swap_df.head()
-        #print(swap_df)
-        #print("/crypto/swaps")
     except HTTPError as e:
         print("Error:", e.reason)
-    return swap_df.to_json(orient='records' )
+    
+    return swap_df
 
 @app.route('/crypto/erc20',methods=['GET'])
 def crypto_erc20():
-    global erc_df
     try:
-        erc_df = pd.DataFrame(openbb.crypto.onchain.erc20_tokens())
+        erc_df = crypto.crypto_erc20()
         erc_df.head()
-        #print(erc_df)
+        return erc_df
     except HTTPError as e:
         print("Error", e.reason)
-    return erc_df.to_json(orient='records')
+        return jsonify({"error": e.reason})
 
 @app.route('/crypto/nft/collections', methods=['GET'])
 def displayNFTCollections():
-        global nft_df
         try:
-            nft_df = pd.DataFrame(openbb.crypto.nft.collections())
-            nft_df.head()
-            #print(nft_df)
-        except HTTPError as e:
-            print("Error", e.reason)
-        return nft_df.to_json(orient='records')
-    
-@app.route('/crypto/find', methods=['GET'])
-def cryptoFind():
-        global crypto_df
-        #print('/crypto/find')
-        try:
-            symbol = request.args.get('symbol')
-            #print("Selected symbol: %s" % symbol)
-            #crypto_df = pd.DataFrame(openbb.crypto.find("eth", "CoinGecko", "name", 25))
-            crypto_df = pd.DataFrame(openbb.crypto.find(symbol))
-            crypto_df.head()
-            #print(crypto_df)   
-        except HTTPError as e:
-            print("Error", e.reason)
-        return crypto_df.to_json()
-    
-@app.route('/crypto/price', methods=['GET'])
-def cryptoPrice():
-        global crypto_price
-        global crypto_price_dict
-        #print('/crypto/price')
-        try:
-            _symbol = request.args.get('symbol')
-            #print("Selected symbol: %s" % _symbol)
-            crypto_price = openbb.crypto.price(symbol=_symbol)
-            #print(crypto_price[0])
-            crypto_price_dict = dict(zip(('Symbol','Price', 'Change'), crypto_price))
+            nft_df = crypto.displayNFTCollections()
+            return nft_df
         except HTTPError as e:
             print("Error", e.reason)
             return jsonify({"error": e.reason})
-        return jsonify(crypto_price_dict)
+    
+@app.route('/crypto/find', methods=['GET'])
+def cryptoFind():
+        try:
+            symbol = request.args.get('symbol')
+            crypto_df = crypto.cryptoFind(symbol)
+            return crypto_df
+        except HTTPError as e:
+            print("Error", e.reason)
+            return jsonify({"error": e.reason})
+    
+@app.route('/crypto/price', methods=['GET'])
+def cryptoPrice():
+        try:
+            _symbol = request.args.get('symbol')
+            print("Selected symbol: %s" % _symbol)
+            result = crypto.cryptoPrice(_symbol)
+            return jsonify(result)
+        except HTTPError as e:
+            print("Error", e.reason)
+            return jsonify({"error": e.reason})
+        
 
 @app.route('/crypto/pair', methods=['GET'])
 def cryptoPair():
-        global response
-        url = "https://api.api-ninjas.com/v1/cryptoprice"
-        headers = {
-            "X-Api-Key": os.getenv("NINJAS_API_KEY")
-        }
         _symbol = request.args.get('symbol')
-        response = requests.get(url+"?symbol="+_symbol, headers=headers)
-        # Check it was successful
-        if response.status_code == 200: 
-            # Show the data
-            #print(response.json())
-            return response.json()
-        else:
-            # Show an error
-            print('Request Error')
-            return jsonify({"Error":"Request Error"})
+        response = crypto.cryptoPair(_symbol)
+        return response
 
 @app.route('/crypto/graph', methods=['GET'])
 def cryptoGraph():
     symbol = request.args.get('symbol')
-    chart_df = openbb.crypto.candle(symbol)
-    #openbb.crypto.candle(symbol='BTC', start_date='2020-01-01', end_date='2020-12-31', interval='30m', exchange='coinbase', to_symbol='usd', source='CCXT', volume=True, title="Bitcoin Price over 2020", external_axes=False, yscale='linear', raw=False)
-    return chart_df #jsonify(chart_df_dict)
+    chart_df = crypto.cryptoGraph(symbol)
+    return chart_df
 
 #load function - when given specific symbol and other data, it will return a tabular format of open, close, high and low.  
 @app.route('/crypto/load', methods=['GET'])
 def cryptoLoad():
     symbol = request.args.get('symbol')
+    print("cryptoLoad " + symbol)
     try:
-        #must first load
-        loaded_df = openbb.crypto.load(symbol=symbol,to_symbol="usd",start_date="2019-01-01",source="YahooFinance")
-        print(loaded_df.to_json())
+       result = crypto.cryptoLoad(symbol)
+       return jsonify(result.to_json())
     except HTTPError as e:
         print("Error", e.reason)
         return jsonify({"error": e.reason})
-    return jsonify(load_df.to_json())
+    #return jsonify(load_df.to_json())
 
         
 ######################################### Crypto Endpoints ####################################################
@@ -399,4 +372,4 @@ def put_data():
 # AI endpoints #
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host='0.0.0.0', port=5000)
