@@ -20,7 +20,10 @@ from openbb_terminal.sdk import openbb
 import sys
 import pandas as pd
 newsApiKey = os.getenv('NEWS_API_KEY')
+
+# modules
 from modules import crypto
+from modules import general
 
 #Test Data for embedding
 documents = [
@@ -77,7 +80,6 @@ def forexQuote():
 def crypto_swap():
     try:
         swap_df = crypto.crypto_swap()
-        swap_df.head()
     except HTTPError as e:
         print("Error:", e.reason)
     
@@ -87,7 +89,6 @@ def crypto_swap():
 def crypto_erc20():
     try:
         erc_df = crypto.crypto_erc20()
-        erc_df.head()
         return erc_df
     except HTTPError as e:
         print("Error", e.reason)
@@ -112,18 +113,18 @@ def cryptoFind():
             print("Error", e.reason)
             return jsonify({"error": e.reason})
     
-@app.route('/crypto/price', methods=['GET'])
+@app.route('/crypto/price', methods=['GET']) #bug or need a newer SDK version. 
 def cryptoPrice():
         try:
             _symbol = request.args.get('symbol')
             print("Selected symbol: %s" % _symbol)
             result = crypto.cryptoPrice(_symbol)
-            return jsonify(result)
+            return result
         except HTTPError as e:
             print("Error", e.reason)
             return jsonify({"error": e.reason})
         
-
+#this method retrieves price for asset pairs - BTCUSD or BTCEUR is currently only supported
 @app.route('/crypto/pair', methods=['GET'])
 def cryptoPair():
         _symbol = request.args.get('symbol')
@@ -157,18 +158,12 @@ def cryptoLoad():
 ### News top 10 headlines
 @app.route('/news-headlines', methods=['GET'])
 def newsHeadlines():
-    url = os.getenv("NEWS_API_URL") + os.getenv("NEWS_API_KEY")
-    print(url)
-    response = requests.get(url)
-    # Check it was successful
-    if response.status_code == 200: 
-            # Show the data
-            print(response.status_code)
-    else:
-            # Show an error
-            print('Request Error')
-    return response.json()
-
+    try:
+        response = general.newsHeadlines()
+        # Show the data
+        return response
+    except HTTPError as e:
+        return jsonify({"error": e.reason})
   
 # The default list endpoint returns a list of forex pairs, stablecoin pairs and popular stock symbols with current price
 @app.route('/default/forex', methods=['GET'])
