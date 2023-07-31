@@ -58,6 +58,16 @@ def cryptoPrice(_symbol):
             return jsonify({"error": e.reason})
         return jsonify(crypto_price_dict)
     
+#This function returns only the single asset - AAVE, BTC, ETH
+def defaultCrypto():
+       tickers = ['AAVE', 'ADA', 'ALGO', 'AMP', 'APE', 'ATOM', 'AVAX', 'AXS', 'BCH', 'BNB',
+                    'BTC', 'CRO', 'DOGE', 'DOT', 'EOS', 'ETH', 'FTM', 'GRT', 'LUNA', 'MATIC',
+                    'NEO', 'NEXO', 'ONE', 'OMG', 'SOL', 'UNI', 'USDC', 'USDT', 'VET', 'XLM',
+                    'XRP', 'XTZ', 'YFI']
+       #erc_df = pd.DataFrame(openbb.crypto.onchain.erc20_tokens()) 
+       #print(erc_df)
+       return jsonify(tickers)
+    
 def cryptoFind(_symbol):
         global crypto_df
         try:

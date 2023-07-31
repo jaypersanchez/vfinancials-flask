@@ -168,56 +168,22 @@ def newsHeadlines():
 # The default list endpoint returns a list of forex pairs, stablecoin pairs and popular stock symbols with current price
 @app.route('/default/forex', methods=['GET'])
 def defaultForex():
-        url = os.getenv("FOREX_API_LIVE")
-        tickers = ['EURUSD', 'USDJPY', 'GBPUSD', 'USDCHF', 'AUDUSD', 'USDCAD', 'NZDUSD', 
-                   'EURGBP', 'EURJPY', 'GBPJPY', 'CHFJPY', 'EURCHF', 'GBPCHF', 'AUDJPY', 
-                   'AUDNZD', 'AUDCAD', 'CADJPY', 'NZDJPY', 'GBPAUD', 'GBPCAD', 'GBPNZD', 
-                   'EURAUD', 'EURCAD', 'EURNZD', 'USDHKD', 'USDSGD', 'USDTRY', 'USDZAR', 
-                   'USDMXN', 'USDNOK', 'USDSEK', 'USDDKK', 'USDCNH', 'EURTRY', 'EURNOK', 
-                   'EURSEK', 'EURDKK', 'EURHUF', 'EURPLN', 'AUDCHF', 'AUDHKD', 'AUDSGD', 
-                   'AUDNZD', 'CADCHF', 'CADHKD', 'NZDCHF', 'NZDHKD', 'SGDJPY', 'SGDHKD', 
-                   'HKDJPY', 'TRYJPY', 'ZARJPY', 'MXNJPY', 'NOKJPY', 'SEKJPY', 'DKKJPY', 
-                   'CNHJPY', 'HUFJPY', 'PLNJPY']
-        # Get the data
-        #params = {'pairs': 'USDCAD,USDJPY,EURUSD'}
-        global response
-        #response = requests.get(url, params = params)
-        response = requests.get(url)
-
-        # Check it was successful
-        if response.status_code == 200: 
+        try: 
             # Show the data
-            print(response.status_code)
-        else:
-            # Show an error
-            print('Request Error')
+            response = general.defaultForex()
+            return response
+        except HTTPError as e:
+            return jsonify({"error": e.reason})
     
-        #return jsonify(response.json())
-        return jsonify(tickers)
-
+        
 @app.route('/default/crypto', methods=['GET'])
 def defaultCrypto():
-       tickers = ['AAVE', 'ADA', 'ALGO', 'AMP', 'APE', 'ATOM', 'AVAX', 'AXS', 'BCH', 'BNB',
-                    'BTC', 'CRO', 'DOGE', 'DOT', 'EOS', 'ETH', 'FTM', 'GRT', 'LUNA', 'MATIC',
-                    'NEO', 'NEXO', 'ONE', 'OMG', 'SOL', 'UNI', 'USDC', 'USDT', 'VET', 'XLM',
-                    'XRP', 'XTZ', 'YFI']
-       erc_df = pd.DataFrame(openbb.crypto.onchain.erc20_tokens()) 
-       #print(erc_df)
-       return jsonify(tickers)
-    
-@app.route('/default/stocks', methods=['GET'])
-def defaultStocks():
-       tickers = ['AAPL', 'ABBV', 'ABT', 'ACN', 'ADP', 'ADSK', 'AMAT', 'AMGN', 'AMZN', 'APA',
-                    'APC', 'AT&T', 'AXP', 'BA', 'BAC', 'BDX', 'BMY', 'BRKB', 'BRK.A', 'BRK.B',
-                    'C', 'CAT', 'CELG', 'CHM', 'CL', 'COF', 'COST', 'CRM', 'CSCO', 'CVS',
-                    'DHR', 'DIS', 'DOV', 'DOW', 'DTE', 'EIX', 'EMR', 'EXC', 'EXPD', 'F',
-                    'FB', 'FDX', 'FIS', 'FITB', 'FLS', 'GE', 'GOOG', 'GOOGL', 'GS', 'HAL',
-                    'HON', 'HPQ', 'IBM', 'INTC', 'JNJ', 'JPM', 'KO', 'LLY', 'LMT', 'MA',
-                    'MMM', 'MO', 'MSFT', 'MTD', 'RTN', 'SBUX', 'SO', 'SPG', 'T', 'TGT',
-                    'UNH', 'UNP', 'UPS', 'V', 'VZ', 'WMT', 'XOM']
+        try:
+           response = crypto.defaultCrypto()
+           return response
+        except HTTPError as e:
+            return jsonify({"error": e.reason})
         
-       return jsonify(tickers)
-   
 ######################################### Default Endpoints - free subscription access level ####################################################
 
 ######################################### Paid Subscription Endpoints - Normally requires API Key from source ###################################
@@ -241,6 +207,19 @@ def cryptoGetActivelyTraded():
 
 
 ######################################### Stocks Endpoints ######################################################################################
+
+@app.route('/default/stocks', methods=['GET'])
+def defaultStocks():
+       tickers = ['AAPL', 'ABBV', 'ABT', 'ACN', 'ADP', 'ADSK', 'AMAT', 'AMGN', 'AMZN', 'APA',
+                    'APC', 'AT&T', 'AXP', 'BA', 'BAC', 'BDX', 'BMY', 'BRKB', 'BRK.A', 'BRK.B',
+                    'C', 'CAT', 'CELG', 'CHM', 'CL', 'COF', 'COST', 'CRM', 'CSCO', 'CVS',
+                    'DHR', 'DIS', 'DOV', 'DOW', 'DTE', 'EIX', 'EMR', 'EXC', 'EXPD', 'F',
+                    'FB', 'FDX', 'FIS', 'FITB', 'FLS', 'GE', 'GOOG', 'GOOGL', 'GS', 'HAL',
+                    'HON', 'HPQ', 'IBM', 'INTC', 'JNJ', 'JPM', 'KO', 'LLY', 'LMT', 'MA',
+                    'MMM', 'MO', 'MSFT', 'MTD', 'RTN', 'SBUX', 'SO', 'SPG', 'T', 'TGT',
+                    'UNH', 'UNP', 'UPS', 'V', 'VZ', 'WMT', 'XOM']
+        
+       return jsonify(tickers)
 
 @app.route('/stocks/search', methods=['GET'])
 def stock_loadSymbol():
