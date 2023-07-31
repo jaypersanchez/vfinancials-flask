@@ -24,6 +24,7 @@ newsApiKey = os.getenv('NEWS_API_KEY')
 # modules
 from modules import crypto
 from modules import general
+from modules import forex
 
 #Test Data for embedding
 documents = [
@@ -62,15 +63,12 @@ def myKeys():
 # get forex quote
 @app.route('/forex/quote', methods=['GET'])
 def forexQuote():
-    global quote_df
     try:
         symbol = request.args.get('symbol')
-        quote_df = openbb.forex.quote(symbol)
-        quote_df.head()
+        quote_df = forex.forexQuote(symbol)
+        return quote_df
     except HTTPError as e:
         print("Error:", e.reason)
-    return quote_df.to_json(orient='records' )
-
 
 ######################################### Forext Endpoints ####################################################
 
