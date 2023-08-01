@@ -21,26 +21,45 @@ def cryptoLoad(_requestData):
         startdate = requestData['start_date']
         enddate = requestData['end_date']
         source = requestData['source']
-        print("crypto.cryptoLoad " + symbol + " " + to_symbol + " " + startdate + " " + enddate + " " + source  )
+        # to_symbol seems to support only USDT and EUR.  Reflects the same from the terminal usage.
+        print("Crypto Loading Data " + symbol + " " + to_symbol + " " + startdate + " " + enddate + " " + source  )
         loaded_df = openbb.crypto.load(symbol=symbol,to_symbol=to_symbol,start_date=startdate, end_date=enddate,source=source)
-        print(loaded_df.to_json)
+        #print(loaded_df.to_json)
         return loaded_df
     except HTTPError as e:
         print("Error", e.reason)
         return jsonify({"error": e.reason})
 
-def cryptoGraphDisplay(_symbol):
-    #first must load
-    loaded_df = cryptoLoad(_symbol)
+def cryptoGraph(_requestData):
+    requestData = _requestData.get_json()
+    #must first load
+    symbol = requestData['symbol']
+    to_symbol = requestData['to_symbol']
+    startdate = requestData['start_date']
+    enddate = requestData['end_date']
+    source = requestData['source']
+    exchange = requestData['exchange']
+    volume = requestData['volume']
+    title = requestData['title'] #default to tru
+    external_axes = requestData['external_axes']
+    yscale = requestData['yscale']
+    raw = requestData['raw'] #default to false.  If True, then it's meant to return data.  If False, it's meant to display OpenBB default chart window
+    loaded_df = cryptoLoad(_requestData)
     #chart_df = openbb.crypto.candle(_symbol)
-    chart_df = openbb.crypto.candle(symbol=_symbol, data = loaded_df, start_date='2020-01-01', end_date='2020-12-31', exchange='binance', to_symbol="usdt", source='CCXT', volume=True, title="Bitcoin Price over 2020", external_axes=False, yscale='linear', raw=False)
-    #return chart_df #jsonify(chart_df_dict)
+    chart_df = openbb.crypto.candle(symbol=symbol, data = loaded_df, start_date=startdate, end_date=enddate, exchange=exchange, to_symbol=to_symbol, source=source, volume=volume, title=title, external_axes=external_axes, yscale=yscale, raw=raw)
+    if raw == 'True':
+        print("Returning Raw Graphing Data")
+        return chart_df.to_json()
+    elif raw == 'False':
+        #meant to display as graph using OpenBB default window
+        print("Display OpenBB Chart Window")
+        return chart_df
 
-def cryptoGraph(_symbol):
-    loaded_df = cryptoLoad(_symbol)
+#def cryptoGraph(_symbol):
+#    loaded_df = cryptoLoad(_symbol)
     #chart_df = openbb.crypto.candle(_symbol, raw=True)
-    chart_df = openbb.crypto.candle(symbol=_symbol, data = loaded_df, start_date='2020-01-01', end_date='2020-12-31', exchange='binance', to_symbol="usdt", source='CCXT', volume=True, title="Bitcoin Price over 2020", external_axes=False, yscale='linear', raw=True)
-    return chart_df #jsonify(chart_df_dict)
+#    chart_df = openbb.crypto.candle(symbol=_symbol, data = loaded_df, start_date='2020-01-01', end_date='2020-12-31', exchange='binance', to_symbol="usdt", source='CCXT', volume=True, title="Bitcoin Price over 2020", external_axes=False, yscale='linear', raw=True)
+#    return chart_df #jsonify(chart_df_dict)
 
 def cryptoPair(_symbol):
         global response
