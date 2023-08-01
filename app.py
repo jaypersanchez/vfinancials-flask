@@ -43,6 +43,7 @@ documents = [
 ]
 
 app = Flask(__name__)
+
 CORS(app)
 @app.route('/test/vectordata')
 def generate_embeddings():
@@ -147,11 +148,11 @@ def cryptoGraphDisplay():
 #load function - when given specific symbol and other data, it will return a tabular format of open, close, high and low.  
 @app.route('/crypto/load', methods=['GET'])
 def cryptoLoad():
-    symbol = request.args.get('symbol')
-    print("cryptoLoad " + symbol)
+    #requestData = request.get_json()
+    #print("cryptoLoad " + symbol)
     try:
-       result = crypto.cryptoLoad(symbol)
-       return jsonify(result)
+       result = crypto.cryptoLoad(request)
+       return result.to_json() 
     except HTTPError as e:
         print("Error", e.reason)
         return jsonify({"error": e.reason})

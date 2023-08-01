@@ -11,14 +11,19 @@ import pandas as pd
 from dotenv import load_dotenv
 load_dotenv()
 
-def cryptoLoad(_symbol):
-    print("crypto.cryptoLoad " + _symbol)
+def cryptoLoad(_requestData):
     global loaded_df
     try:
+        requestData = _requestData.get_json()
         #must first load
-        loaded_df = openbb.crypto.load(symbol=_symbol,to_symbol="usdt",start_date="2020-01-01", end_date = "2020-01-31" ,source="CCXT")
-        #print(loaded_df.to_json())
-        #return loaded_df.to_json()
+        symbol = requestData['symbol']
+        to_symbol = requestData['to_symbol']
+        startdate = requestData['start_date']
+        enddate = requestData['end_date']
+        source = requestData['source']
+        print("crypto.cryptoLoad " + symbol + " " + to_symbol + " " + startdate + " " + enddate + " " + source  )
+        loaded_df = openbb.crypto.load(symbol=symbol,to_symbol=to_symbol,start_date=startdate, end_date=enddate,source=source)
+        print(loaded_df.to_json)
         return loaded_df
     except HTTPError as e:
         print("Error", e.reason)
