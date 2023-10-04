@@ -8,12 +8,12 @@ import openai
 import requests
 from dotenv import load_dotenv
 load_dotenv()
-#from sentence_transformers import SentenceTransformer
+from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 openai_api_key = os.getenv('OPENAI_API_KEY')
-#model_engine = "text-embedding-ada-002"
-model_engine = "gpt-4"
-#model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+model_engine = "text-embedding-ada-002"
+#model_engine = "gpt-4"
+model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
 from flask import Flask
 from flask_cors import CORS
 from openbb_terminal.sdk import openbb
@@ -296,38 +296,46 @@ def stock_getQuote():
 # AI endpoints #
 @app.route('/semantic')
 def semantic_search():
-    top_k=1
-    query = request.args.get('query') #request.get_json()
-    #query = data['query']
-    document_embeddings = model.encode(documents)
-    query_embedding = model.encode([query])[0]
-    similarities = cosine_similarity([query_embedding], document_embeddings)[0]
-    top_indices = np.argsort(similarities)[-top_k:][::-1]
-    results = [(index, similarities[index]) for index in top_indices]
-    result_list = []
-    for index, similarity in results:
-        #data = {"Document": documents[index]}
-        #result_list.append(data)
-        result_list =  [documents[index] for index, similarity in results]
-    #format proper response using ChatGpt
-    url = os.getenv("OPENAI_COMPLETION_URL")
-    prompt = "Provide a proper natural response where the prompt is " + query + " and the response is the following " + str(result_list) + " and provide source links if possible"
-    #prompt = query
-    payload = {
-        "prompt": prompt,
-        "temperature": 0.9,
-        "max_tokens": 500
-    }
-    headers = {
-        "Content-type":"application/json",
-        "Authorization": "Bearer " + openai.api_key
-    }
-    
-    response = requests.post(url, json=payload, headers=headers)
-    data = response.json()
-    completion = data["choices"][0]["text"]
-    #response = format_response(query, result_list[0])
-    return str(completion)
+    try:
+        top_k=1
+        query = request.args.get('query') #request.get_json()
+        #query = data['query']
+        document_embeddings = model.encode(documents)
+        query_embedding = model.encode([query])[0]
+        similarities = cosine_similarity([query_embedding], document_embeddings)[0]
+        top_indices = np.argsort(similarities)[-top_k:][::-1]
+        results = [(index, similarities[index]) for index in top_indices]
+        result_list = []
+        for index, similarity in results:
+            #data = {"Document": documents[index]}
+            #result_list.append(data)
+            #result_list =  [documents[index] for index, similarity in results]
+            threshold = 0.9  # Adjust the threshold as needed
+            filtered_results = [(index, similarity) for index, similarity in results if similarity >= threshold]
+            result_list = [documents[index] for index, _ in filtered_results]
+
+        print(result_list)
+        #format proper response using ChatGpt
+        url = os.getenv("OPENAI_COMPLETION_URL")
+        prompt = "Provide a proper natural response where the prompt is " + query + " and the response is the following " + str(result_list) + " and provide source links if possible"
+        #prompt = query
+        payload = {
+            "prompt": prompt,
+            "temperature": 0.9,
+            "max_tokens": 500
+        }
+        headers = {
+            "Content-type":"application/json",
+            "Authorization": "Bearer " +  os.getenv("OPENAI_API_KEY") #openai.api_key
+        }
+        
+        response = requests.post(url, json=payload, headers=headers)
+        data = response.json()
+        completion = data["choices"][0]["text"]
+        #response = format_response(query, result_list[0])
+        return str(completion)
+    except Exception as e:
+        return str(e)
 
 ######################################### AI Endpoints ######################################################################################
     
@@ -353,5 +361,6 @@ def put_data():
 # AI endpoints #
 
 if __name__ == '__main__':
+    app.debug = True
     print("VFinancials Listening on " + os.getenv("SERVER_PORT"))
     app.run(host='0.0.0.0', port=os.getenv("SERVER_PORT"))
