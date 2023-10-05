@@ -298,7 +298,7 @@ def stock_getQuote():
 def semantic_search():
     try:
         top_k=1
-        query = request.args.get('query') #request.get_json()
+        query = request.args.get('keyword') #request.get_json()
         #query = data['query']
         document_embeddings = model.encode(documents)
         query_embedding = model.encode([query])[0]
@@ -306,22 +306,24 @@ def semantic_search():
         top_indices = np.argsort(similarities)[-top_k:][::-1]
         results = [(index, similarities[index]) for index in top_indices]
         result_list = []
+        
         for index, similarity in results:
-            #data = {"Document": documents[index]}
-            #result_list.append(data)
             #result_list =  [documents[index] for index, similarity in results]
-            threshold = 0.9  # Adjust the threshold as needed
+            
+            threshold = 0.3  # Adjust the threshold as needed
             filtered_results = [(index, similarity) for index, similarity in results if similarity >= threshold]
+            print(filtered_results)
             result_list = [documents[index] for index, _ in filtered_results]
-
-        print(result_list)
+            print(result_list)
+        #print(result_list)
         #format proper response using ChatGpt
         url = os.getenv("OPENAI_COMPLETION_URL")
         prompt = "Provide a proper natural response where the prompt is " + query + " and the response is the following " + str(result_list) + " and provide source links if possible"
+        #"Provide a proper natural response where the prompt is " + query + " and the response is the following " + str(result_list) + " and provide source links if possible"
         #prompt = query
         payload = {
             "prompt": prompt,
-            "temperature": 0.9,
+            "temperature": 0.8,
             "max_tokens": 500
         }
         headers = {
