@@ -300,6 +300,43 @@ def stock_getQuote():
         
 @app.route('/')
 # AI endpoints #
+@app.route('/bitcoin_semantic_search')
+def bitcoin_semantic_search():
+    try:
+        # Load data from cleaned_sentiment_dataset.json
+        file_path = 'data/cleaned_sentiment_dataset.json'
+        with open(file_path, 'r', encoding='utf-8') as json_file:
+            data = json.load(json_file)
+
+        # Extract text data from the JSON file
+        documents = [item['input'] for item in data]
+
+        # Filter comments based on user query
+        query = request.args.get('query').lower()
+
+        if "negative" in query:
+            # Filter negative comments
+            negative_comments = [comment for comment in documents if "negative" in comment.lower()]
+            return jsonify({"negative_comments": negative_comments})
+
+        elif "positive" in query:
+            # Filter positive comments
+            positive_comments = [comment for comment in documents if "positive" in comment.lower()]
+            return jsonify({"positive_comments": positive_comments})
+
+        elif "neutral" in query:
+            # Filter neutral comments
+            neutral_comments = [comment for comment in documents if "neutral" in comment.lower()]
+            return jsonify({"neutral_comments": neutral_comments})
+
+        # If the query doesn't specify negative, positive, or neutral comments, you can add logic for other queries here.
+
+        return jsonify({"message": "No matching comments found."})
+
+    except Exception as e:
+        return str(e)
+
+
 @app.route('/semantic')
 def semantic_search():
     try:
