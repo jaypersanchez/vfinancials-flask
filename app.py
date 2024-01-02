@@ -26,6 +26,7 @@ from flask import Flask, request, jsonify
 import pickle
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.naive_bayes import MultinomialNB
+from urllib.parse import quote
 
 # modules
 from modules import crypto
@@ -337,8 +338,34 @@ def bitcoin_semantic_search():
         return str(e)
 
 
+
 @app.route('/semantic')
 def semantic_search():
+    try:
+        query = request.args.get('keyword')
+        encoded_query = quote(query)
+        
+        # Split the query into individual keywords
+        keywords = query.split()
+
+        # Load data from cleaned_sentiment_dataset.json
+        file_path = 'data/cleaned_sentiment_dataset.json'
+        with open(file_path, 'r', encoding='utf-8') as json_file:
+            data = json.load(json_file)
+
+        # Extract text data from the JSON file
+        documents = [item['input'] for item in data]
+
+        # Filter comments containing any of the keywords
+        filtered_comments = [comment for comment in documents if any(keyword.lower() in comment.lower() for keyword in keywords)]
+
+        return jsonify({"comments_matching_keywords": filtered_comments})
+    
+    except Exception as e:
+        return str(e)
+
+@app.route('/semantic-old')
+def semantic_search_xx():
     try:
         top_k=1
         query = request.args.get('keyword')
@@ -362,22 +389,23 @@ def semantic_search():
         #print(result_list)
         
         #format proper response using ChatGpt
-        url = os.getenv("OPENAI_COMPLETION_URL")
-        prompt = "Provide a proper natural response where the prompt is " + query + " and the response is the following " + str(result_list) + " and provide source links if possible"
-        payload = {
-            "prompt": prompt,
-            "temperature": 0.8,
-            "max_tokens": 500
-        }
-        headers = {
-            "Content-type":"application/json",
-            "Authorization": "Bearer " +  os.getenv("OPENAI_API_KEY") #openai.api_key
-        }
+        #url = os.getenv("OPENAI_COMPLETION_URL")
+        #prompt = "Provide a proper natural response where the prompt is " + query + " and the response is the following " + str(result_list) + " and provide source links if possible"
+        #payload = {
+        #    "prompt": prompt,
+        #    "temperature": 0.8,
+        #    "max_tokens": 500
+        #}
+        #headers = {
+        #    "Content-type":"application/json",
+        #    "Authorization": "Bearer " +  os.getenv("OPENAI_API_KEY") #openai.api_key
+        #}
         
-        response = requests.post(url, json=payload, headers=headers)
-        data = response.json()
-        completion = data["choices"][0]["text"]
-        return str(completion)
+        #response = requests.post(url, json=payload, headers=headers)
+        #data = response.json()
+        #completion = data["choices"][0]["text"]
+        #return str(completion)
+        return (result_list)
     except Exception as e:
         return str(e)
 
