@@ -4,6 +4,7 @@ from flask import abort
 from flask import jsonify
 import numpy as np
 import os
+import json
 import openai
 import requests
 from dotenv import load_dotenv
@@ -397,7 +398,17 @@ def analyze():
     # Calculate the overall sentiment
     overall_sentiment = calculate_overall_sentiment(sentiments)
     
-    return jsonify({'overall_sentiment': overall_sentiment})
+    # Calculate counts for positive, negative, and neutral sentiments
+    positive_count = sentiments.count('Positive')
+    negative_count = sentiments.count('Negative')
+    neutral_count = sentiments.count('Neutral')
+    
+    return jsonify({
+        'overall_sentiment': overall_sentiment,
+        'positive_count': positive_count,
+        'negative_count': negative_count,
+        'neutral_count': neutral_count
+    })
 
 def analyze_bitcoin_sentiment(bitcoin_data, model, vectorizer):
     # This function takes your Bitcoin data, applies vectorization, and predicts sentiments for each data point
@@ -406,8 +417,7 @@ def analyze_bitcoin_sentiment(bitcoin_data, model, vectorizer):
     # Initialize an empty list to store sentiments
     sentiments = []
     
-    for data_point in bitcoin_data:
-        text = data_point['text']  # Extract the text from your data point
+    for text in bitcoin_data:
         text_vectorized = vectorizer.transform([text])  # Vectorize the text
         sentiment = model.predict(text_vectorized)  # Predict sentiment
         sentiments.append(sentiment[0])
@@ -432,19 +442,24 @@ def calculate_overall_sentiment(sentiments):
     else:
         return 'Neutral'
 
-# Replace this with your actual data loading code
-def load_bitcoin_data():
-    # Load your Bitcoin data from your data source (e.g., JSON file, database)
-    # You should return a list of data points, where each data point contains a 'text' field with the text to analyze
-    
-    # Example (replace with your actual data loading code):
-    bitcoin_data = [
-        {'text': 'Bitcoin is great'},
-        {'text': 'Bitcoin is volatile'},
-        # Add more data points here
-    ]
-    
-    return bitcoin_data
+def load_bitcoin_data(file_path='data/cleaned_sentiment_dataset.json'):
+    try:
+        # Check if the file exists
+        if not os.path.isfile(file_path):
+            print(f"File '{file_path}' not found.")
+            return []
+        
+        # Load data from the JSON file
+        with open(file_path, 'r', encoding='utf-8') as json_file:
+            data = json.load(json_file)
+
+        # Extract the 'text' field from each data point
+        bitcoin_data = [item['input'] for item in data]
+
+        return bitcoin_data
+    except Exception as e:
+        print(f"Error loading Bitcoin data: {e}")
+        return []
 
 ######################################### Sentiment Endpoints ########################
 
