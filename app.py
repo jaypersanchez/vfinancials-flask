@@ -21,6 +21,11 @@ import sys
 import pandas as pd
 newsApiKey = os.getenv('NEWS_API_KEY')
 
+from flask import Flask, request, jsonify
+import pickle
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.naive_bayes import MultinomialNB
+
 # modules
 from modules import crypto
 from modules import general
@@ -298,7 +303,7 @@ def stock_getQuote():
 def semantic_search():
     try:
         top_k=1
-        query = request.args.get('keyword') #request.get_json()
+        query = request.args.get('keyword')
         #query = data['query']
         document_embeddings = model.encode(documents)
         query_embedding = model.encode([query])[0]
@@ -315,12 +320,12 @@ def semantic_search():
             print(filtered_results)
             result_list = [documents[index] for index, _ in filtered_results]
             print(result_list)
+        
         #print(result_list)
+        
         #format proper response using ChatGpt
         url = os.getenv("OPENAI_COMPLETION_URL")
         prompt = "Provide a proper natural response where the prompt is " + query + " and the response is the following " + str(result_list) + " and provide source links if possible"
-        #"Provide a proper natural response where the prompt is " + query + " and the response is the following " + str(result_list) + " and provide source links if possible"
-        #prompt = query
         payload = {
             "prompt": prompt,
             "temperature": 0.8,
@@ -334,7 +339,6 @@ def semantic_search():
         response = requests.post(url, json=payload, headers=headers)
         data = response.json()
         completion = data["choices"][0]["text"]
-        #response = format_response(query, result_list[0])
         return str(completion)
     except Exception as e:
         return str(e)
@@ -362,7 +366,90 @@ def put_data():
     return jsonify({'status': 'success', 'name':name,'age':age})
 # AI endpoints #
 
+######################################### Sentiment Endpoints #############################
+def load_model_and_vectorizer(model_file_name='data/sentiment_model.pkl', vectorizer_file_name='data/vectorizer.pkl'):
+    try:
+        model_file_path = os.path.join(os.path.dirname(__file__), model_file_name)
+        vectorizer_file_path = os.path.join(os.path.dirname(__file__), vectorizer_file_name)
+        
+        with open(model_file_path, 'rb') as model_file, open(vectorizer_file_path, 'rb') as vectorizer_file:
+            model = pickle.load(model_file)
+            vectorizer = pickle.load(vectorizer_file)
+        return model, vectorizer
+    except Exception as e:
+        print(f"Error loading model: {e}")
+        return None, None
+    
+@app.route('/analyze', methods=['POST'])
+def analyze():
+    # Load the model and vectorizer
+    model, vectorizer = load_model_and_vectorizer()
+    
+    if model is None or vectorizer is None:
+        return jsonify({'error': 'Model or vectorizer not loaded'})
+    
+    # Load your Bitcoin data here (replace this with how you load your data)
+    bitcoin_data = load_bitcoin_data()  # Replace with your data loading code
+    
+    # Analyze sentiment for each data point in bitcoin_data
+    sentiments = analyze_bitcoin_sentiment(bitcoin_data, model, vectorizer)
+    
+    # Calculate the overall sentiment
+    overall_sentiment = calculate_overall_sentiment(sentiments)
+    
+    return jsonify({'overall_sentiment': overall_sentiment})
+
+def analyze_bitcoin_sentiment(bitcoin_data, model, vectorizer):
+    # This function takes your Bitcoin data, applies vectorization, and predicts sentiments for each data point
+    # You'll need to implement this function based on your specific data structure
+    
+    # Initialize an empty list to store sentiments
+    sentiments = []
+    
+    for data_point in bitcoin_data:
+        text = data_point['text']  # Extract the text from your data point
+        text_vectorized = vectorizer.transform([text])  # Vectorize the text
+        sentiment = model.predict(text_vectorized)  # Predict sentiment
+        sentiments.append(sentiment[0])
+    
+    return sentiments
+
+def calculate_overall_sentiment(sentiments):
+    # Calculate the overall sentiment based on the individual sentiments
+    # You can implement your logic for calculating the overall sentiment here
+    # For example, you can count the number of positive, negative, and neutral sentiments
+    # and determine the overall sentiment based on some criteria
+    
+    # Example logic (you can customize this):
+    positive_count = sentiments.count('Positive')
+    negative_count = sentiments.count('Negative')
+    neutral_count = sentiments.count('Neutral')
+    
+    if positive_count > negative_count and positive_count > neutral_count:
+        return 'Positive'
+    elif negative_count > positive_count and negative_count > neutral_count:
+        return 'Negative'
+    else:
+        return 'Neutral'
+
+# Replace this with your actual data loading code
+def load_bitcoin_data():
+    # Load your Bitcoin data from your data source (e.g., JSON file, database)
+    # You should return a list of data points, where each data point contains a 'text' field with the text to analyze
+    
+    # Example (replace with your actual data loading code):
+    bitcoin_data = [
+        {'text': 'Bitcoin is great'},
+        {'text': 'Bitcoin is volatile'},
+        # Add more data points here
+    ]
+    
+    return bitcoin_data
+
+######################################### Sentiment Endpoints ########################
+
 if __name__ == '__main__':
     app.debug = True
     print("VFinancials Listening on " + os.getenv("SERVER_PORT"))
     app.run(host='0.0.0.0', port=os.getenv("SERVER_PORT"))
+    
