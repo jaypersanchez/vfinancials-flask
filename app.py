@@ -2,6 +2,7 @@ from flask import Flask
 from flask import request
 from flask import abort
 from flask import jsonify
+from httpx import HTTPError
 import numpy as np
 import os
 import json
@@ -27,6 +28,7 @@ import pickle
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.naive_bayes import MultinomialNB
 from urllib.parse import quote
+from datetime import datetime
 
 # modules
 from modules import crypto
@@ -140,8 +142,25 @@ def cryptoPair():
 @app.route('/crypto/graph', methods=['GET'])
 def cryptoGraph():
     symbol = request.args.get('symbol')
+    from_date_str = request.args.get('fromDate')
+    to_date_str = request.args.get('toDate')
     chart_df = crypto.cryptoGraph(symbol)
-    return chart_df.to_json()
+    # Convert the index (date) of 'chart_df' to Unix timestamps
+    chart_df.index = chart_df.index.astype(int) // 10**6  # Convert nanoseconds to milliseconds
+
+    # Convert yyyy-mm-dd date strings to Unix timestamps
+    from_date = datetime.strptime(from_date_str, '%Y-%m-%d').timestamp() * 1000  # Convert seconds to milliseconds
+    to_date = datetime.strptime(to_date_str, '%Y-%m-%d').timestamp() * 1000  # Convert seconds to milliseconds
+
+    # Assuming 'chart_df' is a DataFrame containing the data
+    # Filter the DataFrame based on the date range
+    filtered_data = chart_df[(chart_df.index >= from_date) & (chart_df.index <= to_date)]
+    
+    # Select the columns 'open', 'close', 'low', 'high', 'volume'
+    selected_data = filtered_data[['Open', 'Close', 'Low', 'High', 'Volume']]
+    
+    # Convert the selected data to JSON format
+    return selected_data.to_json()
 
 #This function returns the default OpenBB chart for the given symbol - run load function
 #  load -c ETH --vs usd then you can run this
