@@ -1,7 +1,9 @@
-from flask import Flask
+import io
+from flask import Flask, send_file
 from flask import request
 from flask import abort
 from flask import jsonify
+from matplotlib import pyplot as plt
 import numpy as np
 import os
 import requests
@@ -24,13 +26,24 @@ def cryptoLoad(_symbol):
         print("Error", e.reason)
         return jsonify({"error": e.reason})
 
-def cryptoGraphDisplay(_symbol):
+def cryptoGraphDisplay(_symbol, from_date, to_date):
     #first must load
     loaded_df = cryptoLoad(_symbol)
-    #chart_df = openbb.crypto.candle(_symbol)
-    chart_df = openbb.crypto.candle(symbol=_symbol, data = loaded_df, start_date='2020-01-01', end_date='2020-12-31', exchange='binance', to_symbol="usdt", source='CCXT', volume=True, title="Bitcoin Price over 2020", external_axes=False, yscale='linear', raw=False)
-    #return chart_df #jsonify(chart_df_dict)
+    # Call the openbb.crypto.candle function with the given dates
+    chart_df = openbb.crypto.candle(symbol=_symbol, data=loaded_df, start_date=from_date, end_date=to_date, exchange='binance', to_symbol="", source='CCXT', volume=True, title=f"{_symbol} Price from {from_date} to {to_date}", external_axes=False, yscale='linear', raw=False)
+    # Create a plot
+    plt.figure()
+    chart_df.plot()  # example, replace with your actual plotting code
+    plt.title(f"{_symbol} Price from {from_date} to {to_date}")
 
+    # Save it to a BytesIO object
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    buf.seek(0)
+
+    # Return the buffer as a response
+    return send_file(buf, mimetype='image/png')
+    
 def cryptoGraph(_symbol):
     loaded_df = cryptoLoad(_symbol)
     #chart_df = openbb.crypto.candle(_symbol, raw=True)

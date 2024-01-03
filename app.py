@@ -1,8 +1,11 @@
-from flask import Flask
+import io
+from flask import Flask, send_file
 from flask import request
 from flask import abort
 from flask import jsonify
 from httpx import HTTPError
+#from matplotlib import pyplot as plt
+import matplotlib.pyplot as plt
 import numpy as np
 import os
 import json
@@ -52,7 +55,8 @@ documents = [
 ]
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})
+
 @app.route('/test/vectordata')
 def generate_embeddings():
     document_embeddings = model.encode(documents)
@@ -167,8 +171,29 @@ def cryptoGraph():
 @app.route('/crypto/graph-display', methods=['GET'])
 def cryptoGraphDisplay():
     symbol = request.args.get('symbol')
-    chart_df = crypto.cryptoGraphDisplay(symbol)
-    return chart_df
+    from_date = request.args.get('fromDate')
+    to_date = request.args.get('toDate')
+    #first must load
+    loaded_df = crypto.cryptoLoad(symbol)
+    # Call the openbb.crypto.candle function with the given dates
+    chart_df = openbb.crypto.candle(symbol=symbol, data=loaded_df, start_date=from_date, end_date=to_date, exchange='binance', to_symbol="", source='CCXT', volume=True, title=f"{symbol} Price from {from_date} to {to_date}", external_axes=False, yscale='linear', raw=False)
+    #chart_df = openbb.crypto.candle(symbol=symbol, data=loaded_df)
+    # Create a plot
+    plt.figure()
+    #chart_df.plot()  # example, replace with your actual plotting code
+    #chart_df.plot(kind='bar')  # 'line' can be replaced with other types like 'bar', 'scatter', etc.
+    plt.title('My Data Plot')
+    plt.xlabel('Date')
+    plt.ylabel('Value')
+    #plt.show()  # Displays the plot
+    
+    # Save it to a BytesIO object
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    buf.seek(0)
+
+    # Return the buffer as a response
+    return send_file(buf, mimetype='image/png')
 
 #load function - when given specific symbol and other data, it will return a tabular format of open, close, high and low.  
 @app.route('/crypto/load', methods=['GET'])
