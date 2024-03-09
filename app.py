@@ -100,7 +100,7 @@ def crypto_swap():
 def crypto_erc20():
     try:
         erc_df = crypto.crypto_erc20()
-        return erc_df
+        return json.loads(erc_df)
     except HTTPError as e:
         print("Error", e.reason)
         return jsonify({"error": e.reason})
@@ -198,17 +198,16 @@ def cryptoGraphDisplay():
 #load function - when given specific symbol and other data, it will return a tabular format of open, close, high and low.  
 @app.route('/crypto/load', methods=['GET'])
 def cryptoLoad():
-    symbol = request.args.get('symbol')
+    data = request.get_json()  # Get JSON data from the request body
+    symbol = data.get('symbol')
     print("cryptoLoad " + symbol)
     try:
        result = crypto.cryptoLoad(symbol)
-       return jsonify(result)
+       return result
     except HTTPError as e:
         print("Error", e.reason)
         return jsonify({"error": e.reason})
-    #return jsonify(load_df.to_json())
-
-        
+            
 ######################################### Crypto Endpoints ####################################################
 
 ######################################### Default Endpoints - free subscription access level ####################################################
@@ -222,17 +221,6 @@ def newsHeadlines():
         return response
     except HTTPError as e:
         return jsonify({"error": e.reason})
-  
-# The default list endpoint returns a list of forex pairs, stablecoin pairs and popular stock symbols with current price
-@app.route('/default/forex', methods=['GET'])
-def defaultForex():
-        try: 
-            # Show the data
-            response = general.defaultForex()
-            return response
-        except HTTPError as e:
-            return jsonify({"error": e.reason})
-    
         
 @app.route('/default/crypto', methods=['GET'])
 def defaultCrypto():
@@ -305,23 +293,6 @@ def stock_load():
     
     return jsonify(stocks_df.to_json(orient='index'))
 
-@app.route('/stocks/stockeodquote', methods=['GET'])
-def stock_stockEODQuote():
-    symbols = request.args.get('symbol')
-    url = os.getenv("EOD_API_URL") + symbols + "?fmt=json&filter=last_close&api_token=" + os.getenv("EOD_API_TOKEN")
-    print("EOD Stock Quote " + url)
-    response = requests.get(url)
-    # Check it was successful
-    if response.status_code == 200: 
-            # Show the data
-            print(response.status_code)
-            print(response.json())
-    else:
-            # Show an error
-            print('Request Error')
-    
-    return jsonify(response.json())
-
 #Requires API_KEY_FINANCIALMODELINGPREP 
 @app.route('/stocks/quote', methods=['GET'])
 def stock_getQuote():
@@ -331,11 +302,13 @@ def stock_getQuote():
     results = []
     quotes: object = []
     for symbol in symbols:
-        # call stock quote api from OpenBB SDK
-        #print(symbol)
-        quote = openbb.stocks.quote(symbol).transpose()
-        # append quote to results
-        results.append(quote)
+        try:
+            quote = openbb.stocks.quote(symbol)
+            print(quote)
+            results.append(quote)
+        except Exception as e:  # Catches any exception
+            print(f"Error processing {symbol}: {e}")
+            results.append(f"Error retrieving quote for {symbol}")
         
     return results
 

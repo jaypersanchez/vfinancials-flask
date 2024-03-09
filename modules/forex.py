@@ -2,6 +2,7 @@ from flask import Flask
 from flask import request
 from flask import abort
 from flask import jsonify
+from httpx import HTTPError
 import numpy as np
 import os
 import requests

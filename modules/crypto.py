@@ -1,8 +1,9 @@
 import io
-from flask import Flask, send_file
+from flask import Flask, json, send_file
 from flask import request
 from flask import abort
 from flask import jsonify
+from httpx import HTTPError
 from matplotlib import pyplot as plt
 import numpy as np
 import os
@@ -19,9 +20,7 @@ def cryptoLoad(_symbol):
     try:
         #must first load
         loaded_df = openbb.crypto.load(symbol=_symbol,to_symbol="usdt",start_date="2020-01-01", end_date = "2020-01-31" ,source="CCXT")
-        #print(loaded_df.to_json())
-        #return loaded_df.to_json()
-        return loaded_df
+        return loaded_df.to_json()
     except HTTPError as e:
         print("Error", e.reason)
         return jsonify({"error": e.reason})
@@ -61,7 +60,7 @@ def cryptoPair(_symbol):
         if response.status_code == 200: 
             # Show the data
             #print(response.json())
-            return response.json()
+            return response
         else:
             # Show an error
             print('Request Error')
@@ -74,7 +73,7 @@ def cryptoPrice(_symbol):
         try:
             #print("Selected symbol: %s" % _symbol)
             crypto_price = openbb.crypto.price(symbol=_symbol)
-            #print(crypto_price[0])
+            print(crypto_price)
             crypto_price_dict = dict(zip(('Symbol','Price', 'Change'), crypto_price))
         except HTTPError as e:
             print("Error", e.reason)
@@ -108,18 +107,18 @@ def displayNFTCollections():
         try:
             nft_df = pd.DataFrame(openbb.crypto.nft.collections())
             nft_df.head()
-            #print(nft_df)
         except HTTPError as e:
             print("Error", e.reason)
         
-        return nft_df.to_json(orient='records')
+        return jsonify(json.loads(nft_df.to_json()))
+
     
 def crypto_erc20():
     global erc_df
     try:
         erc_df = pd.DataFrame(openbb.crypto.onchain.erc20_tokens())
         erc_df.head()
-        #print(erc_df)
+        print(erc_df)
     except HTTPError as e:
         print("Error", e.reason)
     return erc_df.to_json(orient='records')
