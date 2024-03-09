@@ -1,9 +1,14 @@
-from flask import Flask
+import io
+from flask import Flask, send_file
 from flask import request
 from flask import abort
 from flask import jsonify
+from httpx import HTTPError
+#from matplotlib import pyplot as plt
+import matplotlib.pyplot as plt
 import numpy as np
 import os
+import json
 import openai
 import requests
 from dotenv import load_dotenv
@@ -20,6 +25,13 @@ from openbb_terminal.sdk import openbb
 import sys
 import pandas as pd
 newsApiKey = os.getenv('NEWS_API_KEY')
+
+from flask import Flask, request, jsonify
+import pickle
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from urllib.parse import quote
+from datetime import datetime
 
 # modules
 from modules import crypto
@@ -43,7 +55,8 @@ documents = [
 ]
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})
+
 @app.route('/test/vectordata')
 def generate_embeddings():
     document_embeddings = model.encode(documents)
@@ -87,7 +100,7 @@ def crypto_swap():
 def crypto_erc20():
     try:
         erc_df = crypto.crypto_erc20()
-        return erc_df
+        return json.loads(erc_df)
     except HTTPError as e:
         print("Error", e.reason)
         return jsonify({"error": e.reason})
@@ -133,31 +146,68 @@ def cryptoPair():
 @app.route('/crypto/graph', methods=['GET'])
 def cryptoGraph():
     symbol = request.args.get('symbol')
+    from_date_str = request.args.get('fromDate')
+    to_date_str = request.args.get('toDate')
     chart_df = crypto.cryptoGraph(symbol)
-    return chart_df.to_json()
+    # Convert the index (date) of 'chart_df' to Unix timestamps
+    chart_df.index = chart_df.index.astype(int) // 10**6  # Convert nanoseconds to milliseconds
+
+    # Convert yyyy-mm-dd date strings to Unix timestamps
+    from_date = datetime.strptime(from_date_str, '%Y-%m-%d').timestamp() * 1000  # Convert seconds to milliseconds
+    to_date = datetime.strptime(to_date_str, '%Y-%m-%d').timestamp() * 1000  # Convert seconds to milliseconds
+
+    # Assuming 'chart_df' is a DataFrame containing the data
+    # Filter the DataFrame based on the date range
+    filtered_data = chart_df[(chart_df.index >= from_date) & (chart_df.index <= to_date)]
+    
+    # Select the columns 'open', 'close', 'low', 'high', 'volume'
+    selected_data = filtered_data[['Open', 'Close', 'Low', 'High', 'Volume']]
+    
+    # Convert the selected data to JSON format
+    return selected_data.to_json()
 
 #This function returns the default OpenBB chart for the given symbol - run load function
 #  load -c ETH --vs usd then you can run this
 @app.route('/crypto/graph-display', methods=['GET'])
 def cryptoGraphDisplay():
     symbol = request.args.get('symbol')
-    chart_df = crypto.cryptoGraphDisplay(symbol)
-    return chart_df
+    from_date = request.args.get('fromDate')
+    to_date = request.args.get('toDate')
+    #first must load
+    loaded_df = crypto.cryptoLoad(symbol)
+    # Call the openbb.crypto.candle function with the given dates
+    chart_df = openbb.crypto.candle(symbol=symbol, data=loaded_df, start_date=from_date, end_date=to_date, exchange='binance', to_symbol="", source='CCXT', volume=True, title=f"{symbol} Price from {from_date} to {to_date}", external_axes=False, yscale='linear', raw=False)
+    #chart_df = openbb.crypto.candle(symbol=symbol, data=loaded_df)
+    # Create a plot
+    plt.figure()
+    #chart_df.plot()  # example, replace with your actual plotting code
+    #chart_df.plot(kind='bar')  # 'line' can be replaced with other types like 'bar', 'scatter', etc.
+    plt.title('My Data Plot')
+    plt.xlabel('Date')
+    plt.ylabel('Value')
+    #plt.show()  # Displays the plot
+    
+    # Save it to a BytesIO object
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    buf.seek(0)
+
+    # Return the buffer as a response
+    return send_file(buf, mimetype='image/png')
 
 #load function - when given specific symbol and other data, it will return a tabular format of open, close, high and low.  
 @app.route('/crypto/load', methods=['GET'])
 def cryptoLoad():
-    symbol = request.args.get('symbol')
+    data = request.get_json()  # Get JSON data from the request body
+    symbol = data.get('symbol')
     print("cryptoLoad " + symbol)
     try:
        result = crypto.cryptoLoad(symbol)
-       return jsonify(result)
+       return result
     except HTTPError as e:
         print("Error", e.reason)
         return jsonify({"error": e.reason})
-    #return jsonify(load_df.to_json())
-
-        
+            
 ######################################### Crypto Endpoints ####################################################
 
 ######################################### Default Endpoints - free subscription access level ####################################################
@@ -171,17 +221,6 @@ def newsHeadlines():
         return response
     except HTTPError as e:
         return jsonify({"error": e.reason})
-  
-# The default list endpoint returns a list of forex pairs, stablecoin pairs and popular stock symbols with current price
-@app.route('/default/forex', methods=['GET'])
-def defaultForex():
-        try: 
-            # Show the data
-            response = general.defaultForex()
-            return response
-        except HTTPError as e:
-            return jsonify({"error": e.reason})
-    
         
 @app.route('/default/crypto', methods=['GET'])
 def defaultCrypto():
@@ -254,23 +293,6 @@ def stock_load():
     
     return jsonify(stocks_df.to_json(orient='index'))
 
-@app.route('/stocks/stockeodquote', methods=['GET'])
-def stock_stockEODQuote():
-    symbols = request.args.get('symbol')
-    url = os.getenv("EOD_API_URL") + symbols + "?fmt=json&filter=last_close&api_token=" + os.getenv("EOD_API_TOKEN")
-    print("EOD Stock Quote " + url)
-    response = requests.get(url)
-    # Check it was successful
-    if response.status_code == 200: 
-            # Show the data
-            print(response.status_code)
-            print(response.json())
-    else:
-            # Show an error
-            print('Request Error')
-    
-    return jsonify(response.json())
-
 #Requires API_KEY_FINANCIALMODELINGPREP 
 @app.route('/stocks/quote', methods=['GET'])
 def stock_getQuote():
@@ -280,11 +302,13 @@ def stock_getQuote():
     results = []
     quotes: object = []
     for symbol in symbols:
-        # call stock quote api from OpenBB SDK
-        #print(symbol)
-        quote = openbb.stocks.quote(symbol).transpose()
-        # append quote to results
-        results.append(quote)
+        try:
+            quote = openbb.stocks.quote(symbol)
+            print(quote)
+            results.append(quote)
+        except Exception as e:  # Catches any exception
+            print(f"Error processing {symbol}: {e}")
+            results.append(f"Error retrieving quote for {symbol}")
         
     return results
 
@@ -294,11 +318,74 @@ def stock_getQuote():
         
 @app.route('/')
 # AI endpoints #
+@app.route('/bitcoin_semantic_search')
+def bitcoin_semantic_search():
+    try:
+        # Load data from cleaned_sentiment_dataset.json
+        file_path = 'data/cleaned_sentiment_dataset.json'
+        with open(file_path, 'r', encoding='utf-8') as json_file:
+            data = json.load(json_file)
+
+        # Extract text data from the JSON file
+        documents = [item['input'] for item in data]
+
+        # Filter comments based on user query
+        query = request.args.get('query').lower()
+
+        if "negative" in query:
+            # Filter negative comments
+            negative_comments = [comment for comment in documents if "negative" in comment.lower()]
+            return jsonify({"negative_comments": negative_comments})
+
+        elif "positive" in query:
+            # Filter positive comments
+            positive_comments = [comment for comment in documents if "positive" in comment.lower()]
+            return jsonify({"positive_comments": positive_comments})
+
+        elif "neutral" in query:
+            # Filter neutral comments
+            neutral_comments = [comment for comment in documents if "neutral" in comment.lower()]
+            return jsonify({"neutral_comments": neutral_comments})
+
+        # If the query doesn't specify negative, positive, or neutral comments, you can add logic for other queries here.
+
+        return jsonify({"message": "No matching comments found."})
+
+    except Exception as e:
+        return str(e)
+
+
+
 @app.route('/semantic')
 def semantic_search():
     try:
+        query = request.args.get('keyword')
+        encoded_query = quote(query)
+        
+        # Split the query into individual keywords
+        keywords = query.split()
+
+        # Load data from cleaned_sentiment_dataset.json
+        file_path = 'data/cleaned_sentiment_dataset.json'
+        with open(file_path, 'r', encoding='utf-8') as json_file:
+            data = json.load(json_file)
+
+        # Extract text data from the JSON file
+        documents = [item['input'] for item in data]
+
+        # Filter comments containing any of the keywords
+        filtered_comments = [comment for comment in documents if any(keyword.lower() in comment.lower() for keyword in keywords)]
+
+        return jsonify({"comments_matching_keywords": filtered_comments})
+    
+    except Exception as e:
+        return str(e)
+
+@app.route('/semantic-old')
+def semantic_search_xx():
+    try:
         top_k=1
-        query = request.args.get('query') #request.get_json()
+        query = request.args.get('keyword')
         #query = data['query']
         document_embeddings = model.encode(documents)
         query_embedding = model.encode([query])[0]
@@ -306,34 +393,36 @@ def semantic_search():
         top_indices = np.argsort(similarities)[-top_k:][::-1]
         results = [(index, similarities[index]) for index in top_indices]
         result_list = []
-        for index, similarity in results:
-            #data = {"Document": documents[index]}
-            #result_list.append(data)
-            #result_list =  [documents[index] for index, similarity in results]
-            threshold = 0.9  # Adjust the threshold as needed
-            filtered_results = [(index, similarity) for index, similarity in results if similarity >= threshold]
-            result_list = [documents[index] for index, _ in filtered_results]
-
-        print(result_list)
-        #format proper response using ChatGpt
-        url = os.getenv("OPENAI_COMPLETION_URL")
-        prompt = "Provide a proper natural response where the prompt is " + query + " and the response is the following " + str(result_list) + " and provide source links if possible"
-        #prompt = query
-        payload = {
-            "prompt": prompt,
-            "temperature": 0.9,
-            "max_tokens": 500
-        }
-        headers = {
-            "Content-type":"application/json",
-            "Authorization": "Bearer " +  os.getenv("OPENAI_API_KEY") #openai.api_key
-        }
         
-        response = requests.post(url, json=payload, headers=headers)
-        data = response.json()
-        completion = data["choices"][0]["text"]
-        #response = format_response(query, result_list[0])
-        return str(completion)
+        for index, similarity in results:
+            #result_list =  [documents[index] for index, similarity in results]
+            
+            threshold = 0.3  # Adjust the threshold as needed
+            filtered_results = [(index, similarity) for index, similarity in results if similarity >= threshold]
+            print(filtered_results)
+            result_list = [documents[index] for index, _ in filtered_results]
+            print(result_list)
+        
+        #print(result_list)
+        
+        #format proper response using ChatGpt
+        #url = os.getenv("OPENAI_COMPLETION_URL")
+        #prompt = "Provide a proper natural response where the prompt is " + query + " and the response is the following " + str(result_list) + " and provide source links if possible"
+        #payload = {
+        #    "prompt": prompt,
+        #    "temperature": 0.8,
+        #    "max_tokens": 500
+        #}
+        #headers = {
+        #    "Content-type":"application/json",
+        #    "Authorization": "Bearer " +  os.getenv("OPENAI_API_KEY") #openai.api_key
+        #}
+        
+        #response = requests.post(url, json=payload, headers=headers)
+        #data = response.json()
+        #completion = data["choices"][0]["text"]
+        #return str(completion)
+        return (result_list)
     except Exception as e:
         return str(e)
 
@@ -360,7 +449,104 @@ def put_data():
     return jsonify({'status': 'success', 'name':name,'age':age})
 # AI endpoints #
 
+######################################### Sentiment Endpoints #############################
+def load_model_and_vectorizer(model_file_name='data/sentiment_model.pkl', vectorizer_file_name='data/vectorizer.pkl'):
+    try:
+        model_file_path = os.path.join(os.path.dirname(__file__), model_file_name)
+        vectorizer_file_path = os.path.join(os.path.dirname(__file__), vectorizer_file_name)
+        
+        with open(model_file_path, 'rb') as model_file, open(vectorizer_file_path, 'rb') as vectorizer_file:
+            model = pickle.load(model_file)
+            vectorizer = pickle.load(vectorizer_file)
+        return model, vectorizer
+    except Exception as e:
+        print(f"Error loading model: {e}")
+        return None, None
+    
+@app.route('/analyze', methods=['POST'])
+def analyze():
+    # Load the model and vectorizer
+    model, vectorizer = load_model_and_vectorizer()
+    
+    if model is None or vectorizer is None:
+        return jsonify({'error': 'Model or vectorizer not loaded'})
+    
+    # Load your Bitcoin data here (replace this with how you load your data)
+    bitcoin_data = load_bitcoin_data()  # Replace with your data loading code
+    
+    # Analyze sentiment for each data point in bitcoin_data
+    sentiments = analyze_bitcoin_sentiment(bitcoin_data, model, vectorizer)
+    
+    # Calculate the overall sentiment
+    overall_sentiment = calculate_overall_sentiment(sentiments)
+    
+    # Calculate counts for positive, negative, and neutral sentiments
+    positive_count = sentiments.count('Positive')
+    negative_count = sentiments.count('Negative')
+    neutral_count = sentiments.count('Neutral')
+    
+    return jsonify({
+        'overall_sentiment': overall_sentiment,
+        'positive_count': positive_count,
+        'negative_count': negative_count,
+        'neutral_count': neutral_count
+    })
+
+def analyze_bitcoin_sentiment(bitcoin_data, model, vectorizer):
+    # This function takes your Bitcoin data, applies vectorization, and predicts sentiments for each data point
+    # You'll need to implement this function based on your specific data structure
+    
+    # Initialize an empty list to store sentiments
+    sentiments = []
+    
+    for text in bitcoin_data:
+        text_vectorized = vectorizer.transform([text])  # Vectorize the text
+        sentiment = model.predict(text_vectorized)  # Predict sentiment
+        sentiments.append(sentiment[0])
+    
+    return sentiments
+
+def calculate_overall_sentiment(sentiments):
+    # Calculate the overall sentiment based on the individual sentiments
+    # You can implement your logic for calculating the overall sentiment here
+    # For example, you can count the number of positive, negative, and neutral sentiments
+    # and determine the overall sentiment based on some criteria
+    
+    # Example logic (you can customize this):
+    positive_count = sentiments.count('Positive')
+    negative_count = sentiments.count('Negative')
+    neutral_count = sentiments.count('Neutral')
+    
+    if positive_count > negative_count and positive_count > neutral_count:
+        return 'Positive'
+    elif negative_count > positive_count and negative_count > neutral_count:
+        return 'Negative'
+    else:
+        return 'Neutral'
+
+def load_bitcoin_data(file_path='data/cleaned_sentiment_dataset.json'):
+    try:
+        # Check if the file exists
+        if not os.path.isfile(file_path):
+            print(f"File '{file_path}' not found.")
+            return []
+        
+        # Load data from the JSON file
+        with open(file_path, 'r', encoding='utf-8') as json_file:
+            data = json.load(json_file)
+
+        # Extract the 'text' field from each data point
+        bitcoin_data = [item['input'] for item in data]
+
+        return bitcoin_data
+    except Exception as e:
+        print(f"Error loading Bitcoin data: {e}")
+        return []
+
+######################################### Sentiment Endpoints ########################
+
 if __name__ == '__main__':
     app.debug = True
     print("VFinancials Listening on " + os.getenv("SERVER_PORT"))
     app.run(host='0.0.0.0', port=os.getenv("SERVER_PORT"))
+    
